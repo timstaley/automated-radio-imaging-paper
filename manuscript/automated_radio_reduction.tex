@@ -36,7 +36,9 @@
 
 % \title{Automated imaging of radio-synthesis data for transient surveys with existing observatories \tnoteref{git}}
 \title{\texttt{AMIsurvey}, \texttt{chimenea} and other tools:\\ Automated imaging for transient surveys with existing radio-observatories \tnoteref{git}}
-\tnotetext[git]{Generated from git source \texttt{\githash} dated \gitdate.}
+\tnotetext[git]{Generated from git source \texttt{\githash} dated \gitdate.
+Source available at \href{https://github.com/timstaley/automated-radio-imaging-paper}{github.com/timstaley/automated-radio-imaging-paper}
+}
 
 \author[oxford]{Tim D. Staley}
 \ead{tim.staley@physics.ox.ac.uk}
@@ -68,7 +70,7 @@ methods: data analysis \sep  techniques: interferometric
 \label{sec:intro}
 The science of transient astronomical events is a burgeoning sub-field of astronomy. 
 For the past decade, optical and gamma-ray transient surveys have led the way, with radio-band observations being restricted to follow-up of targets discovered at other wavelengths.
-However, a new generation of radio facilities composed primarily of Square Kilometre Array (SKA) pathfinders such as ASKAP, MeerKAT, LOFAR, and the JVLA \citep{Norris2013}, are now at various stages of commissioning and planning, with some (LOFAR, JVLA) already producing new surveys and the rest scheduled for commissioning within the next few years.
+However, a new generation of radio facilities composed primarily of Square Kilometre Array (SKA) pathfinders such as ASKAP, MeerKAT, LOFAR, MWA, and the JVLA \citep{Norris2013}, are now at various stages of commissioning and planning, with some (LOFAR, JVLA, MWA) already producing new surveys and the rest scheduled for commissioning within the next few years.
 These new observatories, and in time the SKA, will provide wider fields of view, 
 greater sensitivity and potentially much faster response to targets of opportunity than was previously possible. 
 Consequently, dedicated surveys in the radio-band will soon provide a stream of transient events and discoveries comparable to those discovered at other wavebands \citep{Burlon2015,Corbel2015,Macquart2015,Stappers2013}.
@@ -97,9 +99,9 @@ The packages described in this paper are available from\\
 \url{https://github.com/timstaley/chimenea}, and\\
 \url{https://github.com/timstaley/amisurvey}.
 }
-The first two, \texttt{drive-ami} and \texttt{drive-casa}, are libraries developed to provide interfaces to mature radio-astronomy software packages, to enable their use from within Python scripts.
-A third library, \texttt{chimenea}, implements an heuristic algorithm for automated imaging of pre-calibrated multi-epoch radio-synthesis data, using \texttt{drive-casa} to build upon subroutines from CASA \citep[the Common Astronomy Software Applications package,][]{McMullin2007, Casa2011}.
-The final package, \texttt{AMIsurvey}, ties together the previous codes to create a telescope-specific end-to-end pipeline, which ingests raw AMI-LA datafiles and produces calibrated and cleaned multi-epoch images ready for source extraction and transient identification.
+The first two, \texttt{drive-ami} and \texttt{drive-casa} \citep{Staley2015_amisurvey, Staley2015_drivecasa}, are libraries developed to provide interfaces to mature radio-astronomy software packages, to enable their use from within Python scripts.
+A third library, \texttt{chimenea} \citep{Staley2015_chimenea}, implements an heuristic algorithm for automated imaging of pre-calibrated multi-epoch radio-synthesis data, using \texttt{drive-casa} to build upon subroutines from CASA \citep[the Common Astronomy Software Applications package,][]{McMullin2007, Casa2011}.
+The final package, \texttt{AMIsurvey} \citep{Staley2015_amisurvey}, ties together the previous codes to create a telescope-specific end-to-end pipeline, which ingests raw AMI-LA datafiles and produces calibrated and cleaned multi-epoch images ready for source extraction and transient identification.
 
 This paper is structured as follows: 
 Section~\ref{sec:software} introduces common methods for 
@@ -375,6 +377,8 @@ Sources outside this central region are attenuated by a primary beam response fa
  \item  Applying the constrained (via use of the Clean aperture-mask) re-Clean algorithm to the single-epoch observations is generally quite robust and provides a good estimate of the background RMS at each epoch, in addition to accurately cleaning sources previously detected in the deep image.
  
  \item We can now apply an unconstrained \textit{Clean} operation to each single-epoch observation, down to the flux-threshold determined by the previous masked re-Clean process, in case there are single-epoch transient sources present which do not correspond to a mask aperture. 
+ We initialize this \textit{Clean} operation with the source-component model derived from the masked \textit{Clean} process, which should help to ensure that any bright sources in the field are cleaned correctly, without spurious assignment of source-components to bright side-lobe artefacts.
+ 
  \item Finally, the pipeline applies primary-beam corrections, and outputs images in both CASA \textit{MeasurementSet} and FITS formats.
 \end{enumerate}
 
@@ -432,7 +436,7 @@ These calibrated observations may be filtered according to quality-control crite
 The grouped-and-filtered observations are then passed, along with configuration parameters (e.g. Clean image-synthesis settings) appropriate to the ALARRM data, to the main \texttt{chimenea} pipeline function for processing. 
 Finally, a full listing of the data-products is output in JSON format, for easy ingestion by further analysis tools. 
 
-To thoroughly test the \texttt{AMIsurvey} pipeline, we reduced a significant portion of the ALARRM data obtained to date: 1116 observations spread over 166 target fields, representing approximately 100 days of telescope time with AMI-LA (approx. 100\,GB of raw data). 
+To thoroughly test the \texttt{AMIsurvey} pipeline, we reduced a significant portion of the ALARRM data obtained to date: 1035 observations spread over 165 target fields, representing approximately 100 days of telescope time with AMI-LA (approx. 100\,GB of raw data). 
 The calibration and imaging stages took around eight and six hours respectively on a single CPU-core. 
 The metadata associated with these reductions were then analysed to confirm that the pipeline generally behaves as expected, identify any problematic datasets, and place some quantitative values on the benefits of applying the full \texttt{chimenea} algorithm, as opposed to simply applying a single Clean to each observation.\footnote{%
  The \texttt{IPython} notebook used to perform this analysis is included with the \texttt{AMIsurvey} package, and a static version relating to the dataset described herein may be viewed at  \url{http://nbviewer.ipython.org/gist/timstaley/5ef6dfc2a370e0288bb0}.
@@ -440,25 +444,24 @@ The metadata associated with these reductions were then analysed to confirm that
 
 
 The first step of the analysis was to exclude any fields of view for which no sources were detected in the concatenated deep-image at the 5.5 sigma level --- these fields have only a single open Clean operation performed at each epoch, based on the RMS estimated in the dirty map, and so do not provide relevant datapoints for this comparison.
-This left 943 observations spread over 122 target fields where a source was detected in the deep image.
+This left 862 observations spread over 121 target fields where a source was detected in the deep image.
 The data were reduced with (somewhat arbitrarily chosen) re-Clean convergence criteria of a 5\% RMS-decrease, or a maximum of three iterations (cf Figure~\ref{fig:reclean}). 
-For the ALARRM dataset, these values appear quite suitable --- 532 observations converged after one iteration (i.e. less than 5\% difference in estimated RMS between dirty map and image produced from one masked Clean operation), 348 converged after two iterations, leaving 63 observations for which the re-Clean algorithm iterated the maximum of three times. 
+For the ALARRM dataset, these values appear quite suitable --- 503 observations converged after one iteration (i.e. less than 5\% difference in estimated RMS between dirty map and image produced from one masked Clean operation), 296 converged after two iterations, leaving 63 observations for which the re-Clean algorithm iterated the maximum of three times. 
 Of these 63 remaining observations, 62 had an RMS decrease in the final re-Clean iteration of less than 5\%. Therefore we can consider only one observation as requiring a `hard-stop' on the re-Clean iterations. 
-(This non-converging observation turns out to be from a field with extended emission, which is generally problematic for the automated pipeline.)
+(This non-converging observation turns out to be from a field with extended emission, which is generally problematic for the current \texttt{AMIsurvey} pipeline.)
 
 As an additional check on the pipeline's behaviour, we produced Figure~\ref{fig:rms}, which compares the fractional decrease in RMS-estimate between the dirty map and the final image, and the flux density of the brightest source detected in the deep image. 
 Generally, we expect fields with brighter sources to exhibit higher levels of side-lobe artefacts in the dirty map, which positively bias the initial dirty-map RMS-estimate (particularly for short observations with poor \textit{uv}-coverage), and so there should be some level of correlation between these two quantities. 
 The resulting plot shows a smooth progression in the maximum RMS-decrease with increasing source flux, excepting some well-understood outliers:
 \begin{itemize}
-   \item The fields XTEJ908, PTF09AXC contain extended emission or blended sources (which are not well suited to reduction by the automated pipeline).
+   \item The observations of XTEJ908+094 are affected by a very bright out-of-field source \textit{(which?)}, which presents extended side-lobe artefacts as additional background variation in the field-of-view.
+   \item The PTF09AXC field contains extended emission and/or blended sources (which are not well suited to reduction by the automated pipeline).
    \item The observations of field SWIFT\_554620 contain a single epoch with a particularly bright source (GRB140327A in afterglow), and so this observation falls lower on the  plot than the rest of the grouping.
-   \item Observations of the GRB110328A field are part of a long-running campaign which only uses 0.4 hour-duration observations, shorter than the more typical observation durations of 1--4 hours used throughout the rest of the dataset.
-   This relatively short integration time can give poor UV coverage and additional artefacts in the dirty map (AMI-LA only has a single North-South baseline). 
 \end{itemize}
 In total there are 84 observations of fields with sources brighter than 10\,mJy, which are not shown in Figure~\ref{fig:rms}. 
 When plotted, these datapoints continue the general trend with increased scatter, but we do not consider them as suitable for automated reduction in the standard \texttt{AMIsurvey} pipeline as modified calibration settings need to be applied when a source of around 10\,mJy or brighter is in the field of view.
 
-As can be seen in Figure~\ref{fig:rms}, when a bright source is present RMS-estimates may drop by a factor of two or more after the masked re-Clean process is applied. 
+As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-estimates may drop by a factor of two or more after the masked re-Clean process is applied. 
 Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. 
 However, experience suggests that the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing and simulation, which we leave to future investigation.
 
@@ -469,7 +472,8 @@ However, experience suggests that the trade-off between sensitivity to real tran
 %   \captionsetup{singlelinecheck=off}
   \caption[Fractional RMS decrease vs. brightest source flux]{%
   \label{fig:rms}
-  Scatter-plots comparing the fractional decrease in RMS-estimate between the dirty map and the final image generated from each single-epoch observation, and the flux density of the brightest source detected in the deep image of that observation's field of view. 
+  Scatter-plots comparing the fractional decrease in RMS-estimate (the ratio of [final image RMS / dirty map RMS] for each single-epoch observation), and the flux density of the brightest source detected in the deep image of that observation's field of view. 
+  Each target has a single value for `brightest source-flux in deep image,' but RMS-decrease varies between epochs, resulting in all RMS-decrease values for a single target being plotted as a column of points.
   As expected, fields with brighter sources in view often have more drastically reduced RMS levels than fields with only faint sources.
   A few outliers (overplotted in red and green) buck this trend, for well understood reasons --- details in text.
   Upper and lower sub-plots depict the same data but with different limits on plotting region applied, to give more clarity in the densely populated upper-left region.
@@ -483,7 +487,7 @@ However, experience suggests that the trade-off between sensitivity to real tran
 In sections~\ref{sec:drive-ami} and \ref{sec:drive-casa} we explored the potential for using terminal-interaction emulation as a means of rapidly developing a Python interface to externally developed pipeline tools which provide a command-line interface, as an alternative to cross-language bindings. 
 We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance. 
 In Section~\ref{sec:chimenea} we introduced \texttt{chimenea}, a pipeline for automated imaging of radio-synthesis data. 
-Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed for more sophisticated reduction algorithms. 
+Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
 We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015}.
 In Section~\ref{sec:amisurvey} we described how we have integrated these packages into a single tool that enables fully-automated data reduction for the ALARRM survey programme, and presented some basic checks of pipeline integrity.
 
@@ -495,7 +499,7 @@ However, if we restrict our scope to that of writing scientific codes in Python,
 \begin{itemize}
  \item Prefer interoperable, modular libraries over monolithic pipeline packages 
   (this is a widely discussed viewpoint more generally known as the \textit{Unix philosophy}). 
-  The packages described in this paper began life as one big ball of prototype code that called out to each external tool in turn (via a sub-process call).
+  The packages described in this paper began life as one big collection of prototype code that called out to each external tool in turn (via a sub-process call).
   As we added features and the codebase grew, it became clear that it was worth separating into separate packages.
   
  \item Use the Python packaging infrastructure. 
@@ -570,9 +574,9 @@ Stylistic changes to suit a given context can always be made after release, and 
 
 
 \section*{Acknowledgements}
+We thank the staff of the Mullard Radio Astronomy Observatory for their invaluable assistance in the operation of AMI.
 
-This work has made use of a variety of Python libraries, including Matplotlib
-\citep{Hunter2007}.
+This work made use of a number of publicly available software packages and data products: NASA's Astrophysics Data System; Astropy, a community-developed core Python package for Astronomy \citep{Astropy2013}; the IPython package \citep{PER-GRA:2007}; matplotlib, a Python library for publication quality graphics \citep{Hunter2007}; and SciPy \citep{jones_scipy_2001}. 
 
 This project was wholly funded by European Research Council Advanced Grant 267697 
 `4 $\pi$ sky: Extreme Astrophysics with Revolutionary Radio Telescopes.’
