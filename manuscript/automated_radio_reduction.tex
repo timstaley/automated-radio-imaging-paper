@@ -258,8 +258,8 @@ The JSON-encoded metadata then contains a `group' tag, which can be used to iden
 An overview of the algorithm implemented in the \texttt{chimenea} pipeline.
 Dotted lines denote re-use of data-products from an earlier stage. 
 Groupings labelled in Roman numerals refer to descriptions in text.
-The terms `open' and `masked' clean refer to applying the \textit{Clean}
-algorithm \citep{Schwab1984} either to a box-region covering the central quarter of a map (i.e. an open or unconstrained clean), or to a masked map, i.e. one where the \textit{Clean} algorithm is constrained to placing model components in the vicinity of known sources.
+The terms `open' and `masked' Clean refer to applying the Clean
+algorithm \citep{Schwab1984} either to a box-region covering the central quarter of a map (i.e. an open or unconstrained clean), or to a masked map, i.e. one where the Clean algorithm is constrained to placing model components in the vicinity of known sources.
 The `re-Clean' subroutine is depicted in Figure~\ref{fig:reclean}.
 \label{fig:chimenea}
 } 
@@ -304,7 +304,7 @@ Similarly to \texttt{drive-ami}, we use \texttt{pexpect} to emulate terminal int
 This side-steps the issues of directly accessing the Python functions, albeit with a cost that we need to implement custom parsing routines to extract any required information from the \texttt{casapy} log-output. 
 
 The \texttt{drive-casa} interface can be used to run plain-text \texttt{casapy} scripts directly; alternatively the package includes a set of convenience routines which try to adhere to a consistent style and make it easy to chain together successive CASA reduction commands to generate a \texttt{casapy} script programmatically.
-For example, the following code fragment generates a script to invoke the CASA routine \mbox{\textit{importUVFITS}}, then perform a zero-iteration \textit{Clean} operation on the resulting CASA \textit{MeasurementSet}
+For example, the following code fragment generates a script to invoke the CASA routine \mbox{\textit{importUVFITS}}, then perform a zero-iteration Clean operation on the resulting CASA \textit{MeasurementSet}
 to produce a dirty map:
 
 
@@ -339,7 +339,7 @@ In the meantime, \texttt{drive-casa} provides a reliable method for incorporatin
 Prompt analysis of results from the ALARRM programme requires frequent re-reduction of target-datasets, as additional observations become available.
 In order to minimise the human effort associated with the imaging stage of the data-reduction, we created a tool for automated imaging of pre-calibrated multi-epoch radio-synthesis data, `\texttt{chimenea}', which is a small pipeline built atop the CASA subroutines (using \texttt{drive-casa} to provide an interface layer). 
 
-The \texttt{chimenea} pipeline is designed to automatically choose a suitable set of parameters for applying the \textit{Clean} algorithm \citep{Hogbom1974,Schwab1984}, addressing two key issues: how `deep' should we Clean (i.e., at what level of peak pixel value in the residuals map do we terminate the Clean process), and how the placing of model components should be constrained via the Clean mask. 
+The \texttt{chimenea} pipeline is designed to automatically choose a suitable set of parameters for applying the Clean algorithm \citep{Hogbom1974,Schwab1984}, addressing two key issues: how `deep' should we Clean (i.e., at what level of peak pixel value in the residuals map do we terminate the Clean process), and how the placing of model components should be constrained via the Clean mask. 
 When performing a blind search for transients, unconstrained or `open' Clean reductions are preferable, since we do not know where a transient source may appear, and an `un-Cleaned' source will be harder to detect since the flux remains spread over the core and sidelobes of the dirty beam. 
 As such, when imaging a field of view which contains no detectable steady sources (to search for transient sources), a simple approach to automating this process is to estimate the root-mean-square noise-level (RMS) from the dirty map, and then apply an open-Clean process, with the Clean termination threshold set to a multiple of the estimated RMS (typically around three). 
 However, this simple approach produces poor results when a bright steady source is located in the field of view, particularly if the single-epoch data being imaged is from a short integration with poor \textit{uv}-plane coverage.
@@ -370,14 +370,14 @@ Sources outside this central region are attenuated by a primary beam response fa
  
  \item Applying an initially unconstrained iterative re-Clean process to each single-epoch observation can give poor results, especially if bright steady sources are present in the field of view, as poor \textit{uv}-coverage can lead to misidentification of side-lobes as separate sources,  and over-estimation of background RMS levels. 
  However, since the deep image is generated from multiple concatenated observations it typically has much better \textit{uv}-coverage and sensitivity. Therefore, we use the deep image to identify steady sources and generate a Clean mask. 
- This mask is used when imaging single-epoch data to constrain the \textit{Clean} process to place model components only in the vicinity of known sources. 
+ This mask is used when imaging single-epoch data to constrain the Clean process to place model components only in the vicinity of known sources. 
  To identify sources in the deep image we make use of a source-extraction tool tailored to radio-data and currently distributed as part of the LOFAR-TKP transients pipeline \citep{Trap2014,Swinbank2015}.
  The user can also specify co-ordinates of known sources to create additional mask apertures, in order to ensure proper cleaning of any known faint sources or transient candidates. 
  
  \item  Applying the constrained (via use of the Clean aperture-mask) re-Clean algorithm to the single-epoch observations is generally quite robust and provides a good estimate of the background RMS at each epoch, in addition to accurately cleaning sources previously detected in the deep image.
  
- \item We can now apply an unconstrained \textit{Clean} operation to each single-epoch observation, down to the flux-threshold determined by the previous masked re-Clean process, in case there are single-epoch transient sources present which do not correspond to a mask aperture. 
- We initialize this \textit{Clean} operation with the source-component model derived from the masked \textit{Clean} process, which should help to ensure that any bright sources in the field are cleaned correctly, without spurious assignment of source-components to bright side-lobe artefacts.
+ \item We can now apply an unconstrained Clean operation to each single-epoch observation, down to the flux-threshold determined by the previous masked re-Clean process, in case there are single-epoch transient sources present which do not correspond to a mask aperture. 
+ We initialize this Clean operation with the source-component model derived from the masked Clean process, which should help to ensure that any bright sources in the field are cleaned correctly, without spurious assignment of source-components to bright side-lobe artefacts.
  
  \item Finally, the pipeline applies primary-beam corrections, and outputs images in both CASA \textit{MeasurementSet} and FITS formats.
 \end{enumerate}
@@ -389,8 +389,8 @@ Sources outside this central region are attenuated by a primary beam response fa
   \includegraphics[width=0.45\textwidth]{../figures/reclean-flow}
   \caption[Iterative `re-Clean' subroutine logic.]{%
 A schematic of the iterative `re-Clean' subroutine, applied as part of the \texttt{chimenea} algorithm depicted in Figure~\ref{fig:chimenea}.
-The subroutine repeatedly applies the \textit{Clean} algorithm until acceptance criteria are met. 
-The convergence tolerance (shown as 5\% in figure), and the \textit{Clean} threshold as a multiple of the estimated root-mean-square background noise level (RMS), are both user-configurable. 
+The subroutine repeatedly applies the Clean algorithm until acceptance criteria are met. 
+The convergence tolerance (shown as 5\% in figure), and the Clean threshold as a multiple of the estimated root-mean-square background noise level (RMS), are both user-configurable. 
 An additional termination criterion is applied --- maximum number of iterations around the Clean / re-estimate RMS loop (typically three) --- but is omitted from the chart for brevity.
 
 \label{fig:reclean}
@@ -445,25 +445,27 @@ The metadata associated with these reductions were then analysed to confirm that
 
 The first step of the analysis was to exclude any fields of view for which no sources were detected in the concatenated deep-image at the 5.5 sigma level --- these fields have only a single open Clean operation performed at each epoch, based on the RMS estimated in the dirty map, and so do not provide relevant datapoints for this comparison.
 This left 862 observations spread over 121 target fields where a source was detected in the deep image.
-The data were reduced with (somewhat arbitrarily chosen) re-Clean convergence criteria of a 5\% RMS-decrease, or a maximum of three iterations (cf Figure~\ref{fig:reclean}). 
+The data were reduced with (somewhat arbitrarily chosen) re-Clean convergence criteria of a RMS-decrease less than 5\% after applying a Clean operation, or a maximum of three re-Clean iterations (cf Figure~\ref{fig:reclean}). 
 For the ALARRM dataset, these values appear quite suitable --- 503 observations converged after one iteration (i.e. less than 5\% difference in estimated RMS between dirty map and image produced from one masked Clean operation), 296 converged after two iterations, leaving 63 observations for which the re-Clean algorithm iterated the maximum of three times. 
 Of these 63 remaining observations, 62 had an RMS decrease in the final re-Clean iteration of less than 5\%. Therefore we can consider only one observation as requiring a `hard-stop' on the re-Clean iterations. 
 (This non-converging observation turns out to be from a field with extended emission, which is generally problematic for the current \texttt{AMIsurvey} pipeline.)
 
-As an additional check on the pipeline's behaviour, we produced Figure~\ref{fig:rms}, which compares the fractional decrease in RMS-estimate between the dirty map and the final image, and the flux density of the brightest source detected in the deep image. 
-Generally, we expect fields with brighter sources to exhibit higher levels of side-lobe artefacts in the dirty map, which positively bias the initial dirty-map RMS-estimate (particularly for short observations with poor \textit{uv}-coverage), and so there should be some level of correlation between these two quantities. 
-The resulting plot shows a smooth progression in the maximum RMS-decrease with increasing source flux, excepting some well-understood outliers:
+As an additional check on the pipeline's behaviour, we produced Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration}, which compare the fractional decrease in RMS-estimate between the dirty map and the final image, and the flux density of the brightest source detected in the deep image. 
+Generally, we expect fields with brighter sources to exhibit higher levels of side-lobe artefacts in the dirty map, which positively bias the initial dirty-map RMS-estimate (particularly for short observations with poor \textit{uv}-coverage), and so we expect some level of correlation between these two quantities. 
+The resulting plots show a smooth progression in the maximum RMS-decrease with increasing source flux, excepting some well-understood outliers:
 \begin{itemize}
-   \item The observations of XTEJ908+094 are affected by a very bright out-of-field source \textit{(which?)}, which presents extended side-lobe artefacts as additional background variation in the field-of-view.
+   \item The observations of XTEJ908+094 are affected by a very bright out-of-field source, which presents extended side-lobe artefacts as additional background variation in the field-of-view.
    \item The PTF09AXC field contains extended emission and/or blended sources (which are not well suited to reduction by the automated pipeline).
    \item The observations of field SWIFT\_554620 contain a single epoch with a particularly bright source (GRB140327A in afterglow), and so this observation falls lower on the  plot than the rest of the grouping.
 \end{itemize}
-In total there are 84 observations of fields with sources brighter than 10\,mJy, which are not shown in Figure~\ref{fig:rms}. 
+In total there are 84 observations of fields with sources brighter than 10\,mJy, which are not shown in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration}.
 When plotted, these datapoints continue the general trend with increased scatter, but we do not consider them as suitable for automated reduction in the standard \texttt{AMIsurvey} pipeline as modified calibration settings need to be applied when a source of around 10\,mJy or brighter is in the field of view.
 
 As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-estimates may drop by a factor of two or more after the masked re-Clean process is applied. 
-Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. 
-However, experience suggests that the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing and simulation, which we leave to future investigation.
+Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. However, some observations of fields with a bright steady source do not show such improvement. This is to be expected if short observations, or those which undergo a high degree of RFI flagging, have sufficiently poor data quality that bright source sidelobes are not a significant contributing factor to background variation. To test this hypothesis, we made a simple cut on the data by replotting only observations of duration greater than 3.5 hours, as shown in Figure~\ref{fig:rms_long_duration} (leaving 289 observations spread over 65 different targets). This plot shows a much clearer relation between bright-source flux-density and RMS-estimate reduction.
+
+
+Finally, we note that experience suggests the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing and simulation, which we leave to future investigation.
 
 \begin{figure*}[p]
 \begin{center}  
@@ -477,6 +479,19 @@ However, experience suggests that the trade-off between sensitivity to real tran
   As expected, fields with brighter sources in view often have more drastically reduced RMS levels than fields with only faint sources.
   A few outliers (overplotted in red and green) buck this trend, for well understood reasons --- details in text.
   Upper and lower sub-plots depict the same data but with different limits on plotting region applied, to give more clarity in the densely populated upper-left region.
+} 
+\end{center} 
+\end{figure*}
+
+\begin{figure*}[p]
+\begin{center}  
+  \includegraphics[width=0.8\textwidth]{../figures/rms_to_2mjy_4hrs}
+  \includegraphics[width=0.8\textwidth]{../figures/rms_to_10mjy_4hrs}
+%   \captionsetup{singlelinecheck=off}
+  \caption[Fractional RMS decrease vs. brightest source flux for long-duration observations]{%
+  \label{fig:rms_long_duration}
+  As Figure~\ref{fig:rms}, but this time only observations of duration 3.5 hours or greater (typically 4 hours) are plotted. 
+  With the short-duration observations removed, the plots show a clearer relation between the flux-density level of the brightest source in the field, and the RMS-estimation improvement gained by applying an iterative Clean process.
 } 
 \end{center} 
 \end{figure*}

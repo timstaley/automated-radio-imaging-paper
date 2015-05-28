@@ -29,19 +29,6 @@ foreach (figure ${STATIC_FIGURES})
     )
 endforeach (figure)
 
-# But we build these figures directly
-#add_custom_command (
-#    OUTPUT ${FIGURE_OUTPUT_DIR}/results/V_predictedVobserved.pdf
-#           ${FIGURE_OUTPUT_DIR}/results/eta_predictedVobserved.pdf
-#           ${FIGURE_OUTPUT_DIR}/results/V_plot.pdf
-#           ${FIGURE_OUTPUT_DIR}/results/eta_plot.pdf
-#    COMMAND ${PYTHON_EXECUTABLE}
-#    ARGS ${PROJECT_SOURCE_DIR}/scripts/results/generate_plots.py
-#         ${FIGURE_OUTPUT_DIR}/results
-#    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/scripts/results
-#    DEPENDS ${PROJECT_SOURCE_DIR}/scripts/results/plotData.txt
-#            ${PROJECT_SOURCE_DIR}/scripts/results/transData.txt
-#)
 
 
 configure_file (
