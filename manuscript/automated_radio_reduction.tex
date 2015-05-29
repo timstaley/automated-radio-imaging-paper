@@ -70,7 +70,12 @@ methods: data analysis \sep  techniques: interferometric
 \label{sec:intro}
 The science of transient astronomical events is a burgeoning sub-field of astronomy. 
 For the past decade, optical and gamma-ray transient surveys have led the way, with radio-band observations being restricted to follow-up of targets discovered at other wavelengths.
-However, a new generation of radio facilities composed primarily of Square Kilometre Array (SKA) pathfinders such as ASKAP, MeerKAT, LOFAR, MWA, and the JVLA \citep{Norris2013}, are now at various stages of commissioning and planning, with some (LOFAR, JVLA, MWA) already producing new surveys and the rest scheduled for commissioning within the next few years.
+However, a new generation of radio facilities composed primarily of Square Kilometre Array (SKA) pathfinders such as 
+ASKAP \citep[the Australian Square Kilometre Array Pathfinder;][]{Murphy2013},
+MeerKAT \citep[Karoo Array Telescope;][]{Booth2012}, 
+LOFAR \citep[the Low Frequency Array;][]{vanHaarlem2013}, 
+MWA \citep[Murchison Widefield Array;][]{Tingay2013,Bell2014}, 
+and the Jansky Very Large Array (JVLA), are now at various stages of commissioning and planning with some (LOFAR, JVLA, MWA) already producing new surveys and the rest scheduled for commissioning within the next few years \citep[see e.g.][for an overiew]{Norris2013}.
 These new observatories, and in time the SKA, will provide wider fields of view, 
 greater sensitivity and potentially much faster response to targets of opportunity than was previously possible. 
 Consequently, dedicated surveys in the radio-band will soon provide a stream of transient events and discoveries comparable to those discovered at other wavebands \citep{Burlon2015,Corbel2015,Macquart2015,Stappers2013}.
@@ -278,7 +283,7 @@ a comprehensive accompanying
 manual\footnote{\url{https://casa.nrao.edu/ref_cookbook.shtml}},
 and a helpdesk service. 
 \texttt{CASA} is also widely applicable, recognising data from many of the current generation of telescopes; support is also available for newly commisioned facilities such as 
-LOFAR \citep{vanHaarlem2013}\footnote{%
+LOFAR\footnote{%
 See also the LOFAR imaging cookbook:\\ 
 \url{http://www.astron.nl/radio-observatory/lofar/lofar-imaging-cookbook}
 }
@@ -349,10 +354,11 @@ Therefore, when imaging a field containing a known bright source the best strate
 
 To resolve this problem, \texttt{chimenea} takes an iterative approach that makes use of all available epochs of data for a given survey field.
 Initially, the data from all epochs are concatenated and an open-Clean process is applied, which is fairly robust to artefacts given enough epochs of data, due to improved \textit{uv}-plane coverage. 
-To ensure the RMS estimation (and hence Clean-termination threshold) is not biased by side-lobes in the dirty map, we re-estimate the RMS after applying an open-Clean and then reapply the Clean process with a lower threshold if a significant drop in RMS is detected.
-Each single-epoch observation is then processed individually. 
+To ensure the RMS-estimation (and hence Clean-termination threshold) is not biased by side-lobes in the dirty map, we re-estimate the RMS after applying an open Clean and then reapply the Clean process with a lower threshold if a significant drop in RMS is detected. 
+The deep-image synthesized from the concatenated data is then used to search for any steady sources in the field of view which are detectable with a high signal-to-noise ratio.
+Next, each single-epoch observation is processed individually. 
 We initially apply a masked Clean, to constrain the placement of Clean-model components to the location of any known bright sources in the field (as detected in the deep image) --- this avoids the issues of side-lobe artefacts due to poor \textit{uv}-coverage in shorter observations. 
-Finally, we apply an open Clean to each epoch in case a transient source is detected.
+Finally, we apply an open Clean to each epoch (initialized using the source-model components from the masked clean) in case a transient source is present at detectable flux-density levels.
 
 Figure~\ref{fig:chimenea} provides an overview of the implemented data-flow. 
 A step-by-step description of the process, relating to the different stages denoted in Figure~\ref{fig:chimenea}, is as follows:
@@ -371,7 +377,7 @@ Sources outside this central region are attenuated by a primary beam response fa
  \item Applying an initially unconstrained iterative re-Clean process to each single-epoch observation can give poor results, especially if bright steady sources are present in the field of view, as poor \textit{uv}-coverage can lead to misidentification of side-lobes as separate sources,  and over-estimation of background RMS levels. 
  However, since the deep image is generated from multiple concatenated observations it typically has much better \textit{uv}-coverage and sensitivity. Therefore, we use the deep image to identify steady sources and generate a Clean mask. 
  This mask is used when imaging single-epoch data to constrain the Clean process to place model components only in the vicinity of known sources. 
- To identify sources in the deep image we make use of a source-extraction tool tailored to radio-data and currently distributed as part of the LOFAR-TKP transients pipeline \citep{Trap2014,Swinbank2015}.
+ To identify sources in the deep image we make use of a source-extraction tool tailored to radio-data and currently distributed as part of the LOFAR transients pipeline \citep{Trap2014,Swinbank2015}.
  The user can also specify co-ordinates of known sources to create additional mask apertures, in order to ensure proper cleaning of any known faint sources or transient candidates. 
  
  \item  Applying the constrained (via use of the Clean aperture-mask) re-Clean algorithm to the single-epoch observations is generally quite robust and provides a good estimate of the background RMS at each epoch, in addition to accurately cleaning sources previously detected in the deep image.
@@ -399,7 +405,9 @@ An additional termination criterion is applied --- maximum number of iterations 
 \end{figure}
 
 We note that the data-flow currently implemented in \texttt{chimenea} represents an heuristic approach to automated radio-synthesis imaging, and may change in the future as we gain further experience.
-The current pipeline is already a considerable improvement over our initial automated solution (which was to simply perform an independent open Clean on each single-epoch observation) but particularly challenging or scientifically significant datasets will still warrant manual care and attention; \texttt{chimenea} provides a reduction which can sometimes be improved further but is good enough for scientific analysis in most cases.
+The current pipeline is already a considerable improvement over our initial automated solution, 
+which was to simply perform an independent open Clean on each single-epoch observation \citep{Staley2013}, 
+but particularly challenging or scientifically significant datasets will still warrant manual care and attention; \texttt{chimenea} provides a reduction which can sometimes be improved further but is good enough for scientific analysis in most cases.
 Additionally, \texttt{chimenea} represents significant value as a working software-implementation, complete with extensive logging, a clearly structured logic-flow, and a number of simple data-structures which aim to make tractable the problem of managing numerous intermediate datasets and configuration parameters. 
 We hope that others will be able to use and build upon this initial implementation.
 
@@ -419,7 +427,7 @@ These needs are met by the \texttt{AMIsurvey} package, described below.
   \includegraphics[width=0.4\textwidth]{../figures/amisurvey-deps}
   \caption[Dependency chart for the \texttt{AMIsurvey} package.]{%
 A dependency chart for the \texttt{AMIsurvey} package; \texttt{AMIsurvey} depends on \texttt{drive-ami}  which in turn depends on the external package \texttt{AMI-REDUCE}, etc.
-The \texttt{tkp} block refers to the LOFAR-TKP software package \citep{Trap2014} described in \cite{Swinbank2015}.
+The \texttt{tkp} block refers to the LOFAR Transients Key Project software package \citep{Trap2014} described in \cite{Swinbank2015}.
 Note that only the salient dependencies are listed; in reality we additionally make use of a 
 number of external Python packages.
 \label{fig:amisurvey-deps}
@@ -450,7 +458,7 @@ For the ALARRM dataset, these values appear quite suitable --- 503 observations 
 Of these 63 remaining observations, 62 had an RMS decrease in the final re-Clean iteration of less than 5\%. Therefore we can consider only one observation as requiring a `hard-stop' on the re-Clean iterations. 
 (This non-converging observation turns out to be from a field with extended emission, which is generally problematic for the current \texttt{AMIsurvey} pipeline.)
 
-As an additional check on the pipeline's behaviour, we produced Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration}, which compare the fractional decrease in RMS-estimate between the dirty map and the final image, and the flux density of the brightest source detected in the deep image. 
+As an additional check on the pipeline's behaviour, we produced Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration}, which compare the fractional decrease in RMS-estimate between the dirty map and the final image, and the flux-density of the brightest source detected in the deep image. 
 Generally, we expect fields with brighter sources to exhibit higher levels of side-lobe artefacts in the dirty map, which positively bias the initial dirty-map RMS-estimate (particularly for short observations with poor \textit{uv}-coverage), and so we expect some level of correlation between these two quantities. 
 The resulting plots show a smooth progression in the maximum RMS-decrease with increasing source flux, excepting some well-understood outliers:
 \begin{itemize}
@@ -461,8 +469,8 @@ The resulting plots show a smooth progression in the maximum RMS-decrease with i
 In total there are 84 observations of fields with sources brighter than 10\,mJy, which are not shown in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration}.
 When plotted, these datapoints continue the general trend with increased scatter, but we do not consider them as suitable for automated reduction in the standard \texttt{AMIsurvey} pipeline as modified calibration settings need to be applied when a source of around 10\,mJy or brighter is in the field of view.
 
-As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-estimates may drop by a factor of two or more after the masked re-Clean process is applied. 
-Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. However, some observations of fields with a bright steady source do not show such improvement. This is to be expected if short observations, or those which undergo a high degree of RFI flagging, have sufficiently poor data quality that bright source sidelobes are not a significant contributing factor to background variation. To test this hypothesis, we made a simple cut on the data by replotting only observations of duration greater than 3.5 hours, as shown in Figure~\ref{fig:rms_long_duration} (leaving 289 observations spread over 65 different targets). This plot shows a much clearer relation between bright-source flux-density and RMS-estimate reduction.
+As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-estimates may drop by a factor of two or more after the masked re-Clean process is applied (i.e. a proportional drop to less than 0.5 times the original value, in the units plotted). 
+Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. However, some observations of fields with a bright steady source do not show such improvement. This is to be expected if short observations, or those which undergo a high degree of RFI flagging, have sufficiently poor data quality that bright source sidelobes are not the dominant contributing factor to background variation. To test this hypothesis, we made a simple cut on the data by replotting only observations of duration greater than 3.5 hours, as shown in Figure~\ref{fig:rms_long_duration} (leaving 289 observations spread over 65 different targets). This plot shows a much clearer relation between bright-source flux-density and RMS-estimate reduction.
 
 
 Finally, we note that experience suggests the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing and simulation, which we leave to future investigation.
@@ -474,7 +482,7 @@ Finally, we note that experience suggests the trade-off between sensitivity to r
 %   \captionsetup{singlelinecheck=off}
   \caption[Fractional RMS decrease vs. brightest source flux]{%
   \label{fig:rms}
-  Scatter-plots comparing the fractional decrease in RMS-estimate (the ratio of [final image RMS / dirty map RMS] for each single-epoch observation), and the flux density of the brightest source detected in the deep image of that observation's field of view. 
+  Scatter-plots comparing the fractional decrease in RMS-estimate (the ratio of [final image RMS / dirty map RMS] for each single-epoch observation), and the flux-density from the brightest source-detection in the deep image of that observation's field of view. 
   Each target has a single value for `brightest source-flux in deep image,' but RMS-decrease varies between epochs, resulting in all RMS-decrease values for a single target being plotted as a column of points.
   As expected, fields with brighter sources in view often have more drastically reduced RMS levels than fields with only faint sources.
   A few outliers (overplotted in red and green) buck this trend, for well understood reasons --- details in text.
@@ -503,7 +511,7 @@ In sections~\ref{sec:drive-ami} and \ref{sec:drive-casa} we explored the potenti
 We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance. 
 In Section~\ref{sec:chimenea} we introduced \texttt{chimenea}, a pipeline for automated imaging of radio-synthesis data. 
 Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
-We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015}.
+We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015,PerezTorres2014}.
 In Section~\ref{sec:amisurvey} we described how we have integrated these packages into a single tool that enables fully-automated data reduction for the ALARRM survey programme, and presented some basic checks of pipeline integrity.
 
 This work also highlights a pressing issue for the field of astronomy as a whole (and wider academia): that of software interoperability and re-use. 
