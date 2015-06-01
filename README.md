@@ -10,7 +10,7 @@ A draft paper describing the [drive-ami](https://github.com/timstaley/drive-ami)
 [amisurvey](https://github.com/timstaley/amisurvey) packages, 
 used for data-reduction as part of the [ALARRM](http://4pisky.org/projects/#ALARRM) programme.
 
-In prep for submission to Astronomy and Computing.
+Submitted to Astronomy and Computing, pre-print available at http://arxiv.org/abs/1505.08123.
 
 This paper is built using the [robotopaper](https://github.com/timstaley/robotopaper) template. 
 You'll need CMake and latexmk.
