@@ -53,10 +53,9 @@ This paper introduces an end-to-end automated reduction pipeline, \texttt{AMIsur
 The most scientifically significant of these is \texttt{chimenea}, which implements a telescope-agnostic algorithm for automated imaging of pre-calibrated multi-epoch radio-synthesis data, of the sort typically acquired for transient surveys or follow-up.
 The algorithm aims to improve upon standard imaging pipelines by utilising iterative RMS-estimation and automated source-detection to avoid so called `Clean bias', and makes use of CASA subroutines for the underlying image-synthesis operations.
 At a lower level, \texttt{AMIsurvey} relies upon two libraries, \texttt{drive-ami} and \texttt{drive-casa}, built to allow use of mature radio-astronomy software packages from within Python scripts. 
-These packages may be of wider techical interest, since they demonstrate use of the Python library \texttt{pexpect} to emulate terminal interaction with an external process. 
+While targeted at automated imaging, the \texttt{drive-casa} interface can also be used to automate interaction with \textit{any} of the CASA subroutines from a generic Python process.
+Additionally, these packages may be of wider techical interest beyond radio-astronomy, since they demonstrate use of the Python library \texttt{pexpect} to emulate terminal interaction with an external process. 
 This approach allows for rapid development of a Python interface to any legacy or externally-maintained pipeline which accepts command-line input, without requiring alterations to the original code.
-
-
 
 \end{abstract}
 
@@ -107,105 +106,17 @@ A third library, \texttt{chimenea} \citep{Staley2015_chimenea}, implements an he
 The final package, \texttt{AMIsurvey} \citep{Staley2015_amisurvey}, ties together the previous codes to create a telescope-specific end-to-end pipeline, which ingests raw AMI-LA datafiles and produces calibrated and cleaned multi-epoch images ready for source extraction and transient identification.
 
 This paper is structured as follows: 
-Section~\ref{sec:software} introduces common methods for 
-interfacing with legacy codes, discusses their relative pros and cons, 
-and recalls existing examples of these 
-methods in radio-astronomy software. 
 % 
-In Section~\ref{sec:drive-ami} we introduce AMI-LA, and describe how we have employed the \texttt{pexpect} Python library to create a scriptable interface to its associated calibration pipeline.
+In Section~\ref{sec:drive-ami} we introduce AMI-LA, and describe how we have employed the \texttt{pexpect} Python library to create a fully scriptable interface to its associated calibration pipeline.
 % 
 Section~\ref{sec:drive-casa} discusses our choice to build upon the CASA routines to implement the imaging stage, and explains the rationale and design of our external
 scripting interface, \texttt{drive-casa}.
-Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives a brief overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}, and presents a basic `quality control' analysis demonstrating that the pipeline behaves as expected.
+Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives an overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}, including a basic `quality control' analysis demonstrating that the pipeline behaves as expected.
 % Finally, Section~\ref{sec:discuss} gives some thoughts on the importance of interoperability in future astronomical software, and we conclude in Section~\ref{sec:conclusion}.
-Finally, we summarise and suggest some guidelines for writing re-usable Python codes in Section~\ref{sec:conclusion}.
-
-\section{Methods for scripting legacy software}
-\label{sec:software}
-
-\subsection{Cross-language bindings}
-Typically, the core algorithms of data-reduction pipelines are 
-implemented in a lower-level language such as Fortran, C or C++, either for 
-performance reasons or simply because these languages were most suitable
-when the software was initially written. However, it is generally recognised
-that high-level programming languages such as Python, Perl or IDL provide a more
-suitable environment for rapid prototyping and development of scientific 
-algorithms, due to their flexibility, succinctness, and 
-convenient access to a large variety of external libraries for tasks such
-as data-visualization or statistical analysis.
-The standard approach to making routines written in a low-level language 
-available from a higher-level language is to 
-implement cross-language ``bindings'', 
-specialized modules which map data-structures and function calls between the two.
-Examples of this approach in radio 
-astronomy are \texttt{miriad-python} \citep{Williams2012}, which provides 
-Python bindings for \texttt{miriad} \citep{Sault1995,Sault2011},
-and the \texttt{Obit / ParselTongue} packages 
-\citep{Cotton2008,Cotton2013,Kettenis2006, Kettenis2012}, which provide 
-Python bindings for AIPS \citep{Fomalont1981}. 
-We refer the reader to \cite{Williams2012} for further discussion on these
-packages and their merits.
-
-While binding modules are usually the most desirable solution for developing a scriptable interface to routines written in a low-level language, there are associated costs and requirements that may make such an approach impractical. 
-In astronomy, the primary issues with software development are usually those of available developer time and expertise.
-Astronomers with knowledge of both high-level and low-level languages, and how to implement bindings between them, are rare. 
-Even if someone with the requisite skills is available, the task of creating bindings and porting the required pipeline-logic to a high-level language may require a significant investment of developer time, both to understand the logic implemented in the legacy system, and to verify that it is faithfully reproduced in the `ported' version. 
-At the end-user level, there is also the problem of familiarity: a cross-language port of a well-used legacy package will require users to re-learn the interface via its new bindings. 
-Finally, there are the twin issues of access to source code, and maintenance --- 
-if a tool is proprietary, or if the source is unavailable for other reasons, or non-trivial to compile, then this presents an additional hurdle to implementation and use of bindings. 
-Any changes to the original package must also be reflected in the bindings modules, requiring code-maintenance and recompilation on a schedule tied to the external package.
-
-As such, implementing binding modules from scratch may be 
-overkill.
-% an expensive means of achieving interoperability,  when
-%  other, cruder methods might suffice. 
-Some alternative approaches to using low-level or legacy codes from a higher-level language are described below.
-
-\subsection{Sub-process calls}
-If an external tool is usually invoked via an executable which takes command line arguments and then requires no further interaction, it is often trivial to invoke in a scripted fashion (otherwise known as `spawning' or `calling out' to a sub-process). 
-The built in Python library \texttt{subprocess} provides a perfectly adequate interface when this is the case. 
-We also direct the reader towards the \texttt{sh} 
-package\footnote{
-\url{http://amoffat.github.io/sh/}
-}, which 
-provides an alternative interface in which external commands may be represented by objects akin to Python functions, making for a neater syntax in repeated usage.
-
-However, this approach falls down when invoking longer-running, 
-multi-step processes that may require user interaction. 
-While such tools often provide an option
-to run a series of commands from a script, parsing the concatenated output 
-from many individual commands to record details of the data-reduction, 
-or worse yet detecting error conditions and locating the cause, 
-can present a considerable challenge. 
-In addition, larger, interactive tools often incur a few seconds start-up
-time while the environment loads, and so repeatedly invoking the tool for 
-multiple smaller steps can be impractically slow. 
-
-\subsection{Terminal emulation}
-\label{sec:emulation}
-A third option is that of terminal emulation: spawn the external tool in a 
-sub-process, but then interact with it by emulating interactive terminal input.
-While this is slightly more involved than a simple sub-process call it 
-allows for a one-to-one mapping of the sub-routines presented by the external 
-tool into the user's scripting language of choice, without any of the 
-source modification or recompilation that implementing bindings requires. 
-
-Implementation of the basic interface class is relatively simple. 
-The essential parameters are a regular expression representing the format of the command-line prompt presented by the external tool, the path to invoke the external tool, and any required environment variables.
-Once the underlying interface is in place, end-user scripts that would previously be invoked from within the external tool's interactive environment can immediately be employed as part of a larger pipeline. 
-Furthermore, the precise inputs passed via the interface can be recorded alongside any data-outputs, providing data-provenance, so that if an end-user later wishes to inspect the data-reduction process manually, they can load up the external tool and step through the recorded command-script, either verifying or varying the reduction steps as required.
-
-From this starting point, it is straightforward to build up a more comprehensive interface suitable for use in complex logic flows. Since the output from each command is available in a clearly separated block of text, it is often trivial to implement some very basic parsing routines that can recover information from the command-line output of the external tool, allowing for `if / else' logic branches in the larger pipeline which make use of intermediate outputs from the external tool. 
-If desirable, convenience routines can be added to ease the process of generating the commands passed, providing an interface which is better suited to the high-level scripting language (while still allowing direct access to the external tool as required).
-
-Since this approach effectively treats an external tool's command-line interface as a programming interface, any updates to the external tool are unlikely to require changes to the scripting-interface, unless they involve changes that also break user-interaction. 
-(With one caveat --- if output-parsing relies on a particular output format, this may be changed to another layout which is still human-friendly but breaks the fixed parser rules.)
-
-In terms of performance, terminal emulation sits somewhere between that of cross-language bindings and simple sub-process invocation. 
-Small delays (typically around 0.05 seconds) in the input-output cycle must be allowed for when emulating terminal interaction, presumably due to the small but measurable time it takes for the external tool to parse the commands input. In addition, any overhead incurred when starting the external tool is still present. 
-However, once initialized, an instance of the external tool can be re-used for many commands, and so this start-up overhead is incurred fewer times when compared to simple sub-process calls. 
-
-It is this terminal-emulation approach that we adopted in implementing Python interfaces to the \texttt{AMI-REDUCE} and CASA packages, as detailed below.
+In the discussion section, we first describe known limitations of our \texttt{chimenea} algorithm, and desribe some possible alternatives and future extensions (\S\ref{sec:chimenea-discussion}). 
+We then describe and compare different methods for solving a problem relevant in the wider context of software in academia: that of interfacing with legacy software, and explain the choice of method for this work (\S\ref{sec:software}). 
+We conclude the discussion with some general recommendations for writing re-usable Python codes (\S\ref{sec:code-reuse}). 
+Finally, we summarise this work in Section~\ref{sec:conclusion}.
 
 
 \section{Automated calibration of AMI-LA data with \texttt{drive-ami}}
@@ -222,34 +133,27 @@ This applies path delay corrections, automatic flags for interference, pointing 
 Typically data reduction is either carried out interactively, allowing the user to view plots of the data in order to guide the reduction process, or by calling one of a selection of standard reduction scripts (which are simple listings of \texttt{AMI-REDUCE} commands, without any flow control such as `if' statements or `for' loops.). 
 
 Application of one of the standard \texttt{AMI-REDUCE} listings was adopted as a calibration step for observations made as part of the ALARRM programme. 
-Early versions of the ALARRM pipeline ran \texttt{AMI-REDUCE} via a simple subprocess call, but this proved problematic. 
+Early versions of the ALARRM pipeline ran \texttt{AMI-REDUCE} from a Python script via a simple subprocess call (cf \S\ref{sec:subprocess}), but this proved problematic. 
 First, when inspecting the logs, a successful reduction with \texttt{AMI-REDUCE} was indistinguishable from an aborted reduction due to a problematic dataset. 
 Second, important metadata such as the rain modulation (which gives some idea of the data-quality) and observation time is not stored in the header of the \textit{uv}-FITS output files, and so checking these values still required manually loading the dataset in question into the \texttt{AMI-REDUCE} pipeline. 
-A more powerful programmatic interface to \texttt{AMI-REDUCE} was required.
 
-The \texttt{AMI-REDUCE} pipeline is implemented in \mbox{FORTRAN} 77, and comprises around 58,000 lines of 
-source-code\footnote{As analyzed using the \texttt{SLOCCount} utility: \\ \url{http://www.dwheeler.com/sloccount/}\\
-(Including component libraries.)}. 
-In the rare case that \texttt{AMI-REDUCE} needs to be run elsewhere than the MRAO it is typically distributed as a pre-built binary, with a copy of the source files included. 
-Despite the author's efforts to install appropriate dependencies and alter makefiles, building the package from source on a modern Ubuntu Linux installation proved to be problematic (as opposed to simply executing the pre-built binary, which was simple once the appropriate compatibility packages had been downloaded and installed). 
-Given the size and complexity of the codebase, the difficulties building from source, and the authors' lack of expertise in Fortran, we judged that implementing Python-bindings to the \texttt{AMI-REDUCE} routines directly would require a significant and costly investment of developer time, with little benefit given that \texttt{AMI-REDUCE} is not a widely-used software package. Instead, we implemented a terminal-emulation interface that provides a set of Python routines for controlling \texttt{AMI-REDUCE}, under the moniker \texttt{drive-ami}. 
+Clearly, a more powerful programmatic interface to \texttt{AMI-REDUCE} was required. 
+Accordingly, we we implemented an interface that provides a set of Python routines for controlling \texttt{AMI-REDUCE}, under the moniker \texttt{drive-ami}. 
 To do so we make use of 
 \texttt{pexpect}\footnote{%
 \url{http://pexpect.readthedocs.org}}, 
-a pure-Python library for emulating terminal-interaction.  
-\texttt{pexpect} is small (a 132kB download) and only requires a working Python installation (v2.6 or greater) as a prerequisite. 
+a pure-Python library for emulating terminal-interaction, as discussed in subsections~\ref{sec:emulation} and~\ref{sec:why-emulation}.  
 
 In addition to allowing step-by-step calling of the \texttt{AMI-REDUCE} functionality from a Python script, \texttt{drive-ami} provides a number of enhancements to the data-reduction process.
-First, as discussed in Section~\ref{sec:emulation}, data-provenance and reproducibility is improved. 
-All the \texttt{AMI-REDUCE} commands are recorded in a log-file along with the output \textit{uv}-FITS data. 
+Data-provenance and reproducibility are improved; all the \texttt{AMI-REDUCE} commands are recorded in a log-file along with the output \textit{uv}-FITS data. 
 In a separate file, all textual output displayed during the reduction process is logged alongside the input commands, so that the end-user may read back over the reduction dialogue as if scrolling back through a terminal history arising from using \texttt{AMI-REDUCE} interactively. 
 A variety of metadata such as observation times, calibrator source, rain modulation and percent of data flagged due to radio-frequency interference is also parsed from the output and stored in JavaScript Object Notation (JSON) format, which has the benefit of being both human-readable and trivially parsed in most high-level programming languages. 
 
 As an added convenience, \texttt{drive-ami} can also be used to help configure reduction of multiple-epoch data for a source observed with AMI-LA. 
 While observations are usually easy to sort by their filename-prefix (which refers to the target name), occasionally a target is renamed after the initial epoch of observation (e.g. to reflect an assigned GRB ID), or a prefix may be incremented if multiple observations are performed in a single day. 
 \texttt{drive-ami} can utilise \texttt{AMI-REDUCE} to extract the pointing information from the raw data-files and then group observations according to their pointing, given a tolerance limit on the maximum angular separation between pointing-centres. 
-We make use of the Astropy co-ordinate routines for calculating the angular separation \citep{Astropy2013}.
-The JSON-encoded metadata then contains a `group' tag, which can be used to identify all observations of a given target for processing as a group (Section~\ref{sec:chimenea}).
+We make use of the \texttt{astropy} co-ordinate routines for calculating the angular separation \citep{Astropy2013}.
+The JSON-encoded metadata accompanying the resulting \textit{uv}-FITS data then contains a `group' tag, which can be used to identify all observations of a given target for processing as a group (cf Section~\ref{sec:chimenea}).
 
 
 % Bit of a hack:
@@ -273,14 +177,14 @@ The `re-Clean' subroutine is depicted in Figure~\ref{fig:reclean}.
 \section{External scripting of CASA subroutines with \texttt{drive-casa}}
 \label{sec:drive-casa}
 Traditionally, the \textit{uv}-FITS data products output from the \texttt{AMI-REDUCE} reduction stage are reduced using the \texttt{AIPS} package \citep{Fomalont1981}, but for the ALARRM programme we chose to make use of CASA \citep{McMullin2007}. 
-We made this switch for a few reasons. 
-We judge \texttt{CASA} as the best supported general-purpose package for radio-astronomy data-reduction, 
+We made this switch for a few reasons.
+We judge CASA to be the best supported general-purpose package for radio-astronomy data-reduction, 
 with a simple installation process, 
 frequent updates\footnote{\url{http://casa.nrao.edu/previous_casa.shtml}}, 
 a comprehensive accompanying 
 manual\footnote{\url{https://casa.nrao.edu/ref_cookbook.shtml}},
 and a helpdesk service. 
-\texttt{CASA} is also widely applicable, recognising data from many of the current generation of telescopes; support is also available for newly commisioned facilities such as 
+CASA is also widely applicable, recognising data from many of the current generation of telescopes; support is also available for newly commisioned facilities such as 
 LOFAR\footnote{%
 See also the LOFAR imaging cookbook:\\ 
 \url{http://www.astron.nl/radio-observatory/lofar/lofar-imaging-cookbook}
@@ -295,7 +199,7 @@ As a result, Python packages installed in the normal manner are unavailable from
 This is unfortunate, as it precludes easy usage of CASA routines from within a larger pipeline, even though much of the underlying interface is already written in Python.
 
 With regards to data-provenance and reproducibility, \texttt{casapy} provides extensive logfiles which provide a record of the commands and resulting information from a data-reduction run. 
-However, a minor flaw is that once instantiated, \texttt{casapy} provides no method (or at least, no documented method) for redirecting log output, which can make it harder to isolate the log section relevant to a given observation. 
+However, a minor flaw is that once instantiated, \texttt{casapy} provides no method (or at least, no documented method) for redirecting log output, which can make it hard to locate the log section relevant to a given observation when reduced as part of a batch. 
 Logging of input and output is also collapsed into a single stream, which makes it tricky to extract the commands required to reproduce a reduction process.
 
 Programmatic error-handling is also lacking from the \texttt{casapy} environment. 
@@ -303,10 +207,10 @@ The standard \texttt{casapy} routines do not provide a return value, or throw ex
 Instead, all processing information and errors are output as log messages, which makes it hard to respond in an automated fashion.
 
 Our package for automating interaction with \texttt{casapy}, `\texttt{drive-casa}', addresses these issues.
-Similarly to \texttt{drive-ami}, we use \texttt{pexpect} to emulate terminal interaction with the \texttt{casapy} process. 
-This side-steps the issues of directly accessing the Python functions, albeit with a cost that we need to implement custom parsing routines to extract any required information from the \texttt{casapy} log-output. 
+Similarly to \texttt{drive-ami}, we use \texttt{pexpect} to emulate terminal interaction with the \texttt{casapy} process, as detailed in Section~\ref{sec:emulation}. 
 
-The \texttt{drive-casa} interface can be used to run plain-text \texttt{casapy} scripts directly; alternatively the package includes a set of convenience routines which try to adhere to a consistent style and make it easy to chain together successive CASA reduction commands to generate a \texttt{casapy} script programmatically.
+The \texttt{drive-casa} interface can be used to execute strings or scripts containing \texttt{casapy} commands directly, so all \texttt{casapy} subroutines are accessible via the \texttt{drive-casa} interface. 
+Alternatively, the package includes a set of convenience routines which try to adhere to a consistent style and make it easy to chain together successive CASA reduction commands to generate a \texttt{casapy} script programmatically.
 For example, the following code fragment generates a script to invoke the CASA routine \mbox{\textit{importUVFITS}}, then perform a zero-iteration Clean operation on the resulting CASA \textit{MeasurementSet}
 to produce a dirty map:
 
@@ -332,7 +236,7 @@ should make it easier to install external Python packages into the \texttt{casap
 This may provide a preferable solution for those who wish to make small alterations to their \texttt{casapy} workflow to include external functionality, but still effectively treats \texttt{casapy} as the top-level pipeline framework, rather than abstracting it to a more standard Python package, as \texttt{drive-casa} does.
 
 
-Since \texttt{casapy} is largely Python code internally, and is still undergoing active development, we hope that eventually a native Python interface to \texttt{casapy} will be made available, thus negating the need for the terminal-emulation layer of \texttt{drive-casa}. 
+Since \texttt{casapy} is largely Python code internally, and is still undergoing active development, we hope that eventually a native Python interface to CASA \textit{as a library} (not an executable) will be made available, thus negating the need for the terminal-emulation layer of \texttt{drive-casa}. 
 In the meantime, \texttt{drive-casa} provides a reliable method for incorporating CASA functionality into a fully automated Python reduction pipeline, as demonstrated in Section~\ref{sec:chimenea}.
 
 
@@ -503,16 +407,124 @@ Finally, we note that experience suggests the trade-off between sensitivity to r
 \end{figure*}
 
 
-\section{Summary and discussion: writing re-usable Python codes}
-\label{sec:conclusion}
-In sections~\ref{sec:drive-ami} and \ref{sec:drive-casa} we explored the potential for using terminal-interaction emulation as a means of rapidly developing a Python interface to externally developed pipeline tools which provide a command-line interface, as an alternative to cross-language bindings. 
-We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance. 
-In Section~\ref{sec:chimenea} we introduced \texttt{chimenea}, a pipeline for automated imaging of radio-synthesis data. 
-Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
-We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015,PerezTorres2014}.
-In Section~\ref{sec:amisurvey} we described how we have integrated these packages into a single tool that enables fully-automated data reduction for the ALARRM survey programme, and presented some basic checks of pipeline integrity.
+\section{Discussion}
+\label{sec:discussion}
+\subsection{Limitations, alternatives and possible extensions to \texttt{chimenea}}
+\label{sec:chimenea-discussion}
+\subsection{Methods for interfacing with legacy or proprietary software}
+\label{sec:software}
+The \texttt{drive-ami} and \texttt{drive-casa} software packages discussed in this paper solve a problem commonly found throughout software-intensive fields of both academia and industry --- how to employ (in an automated fashion) a software package that cannot be directly called as a library. This need may arise when the external package is written in a different programming language to that of the user's codebase, or because the external codebase is legacy or proprietary and only the command-line interface is accessible.
+In this subsection we describe three approaches that may be adopted when creating an interface to legacy or cross-language software, together with their merits and drawbacks, and explain why we chose to use terminal-emulation in this work.
 
-This work also highlights a pressing issue for the field of astronomy as a whole (and wider academia): that of software interoperability and re-use. 
+\subsubsection{Cross-language bindings}
+Typically, the core algorithms of data-reduction pipelines are 
+implemented in a lower-level language such as Fortran, C or C++, either for 
+performance reasons or simply because these languages were most suitable
+when the software was initially written. However, it is generally recognised
+that high-level programming languages such as Python, Perl or IDL provide a more
+suitable environment for rapid prototyping and development of scientific 
+algorithms, due to their flexibility, succinctness, and 
+convenient access to a large variety of external libraries for tasks such
+as data-visualization or statistical analysis.
+The standard approach to making routines written in a low-level language 
+available from a higher-level language is to 
+implement cross-language ``bindings'', 
+specialized modules which map data-structures and function calls between the two.
+Examples of this approach in radio 
+astronomy are \texttt{miriad-python} \citep{Williams2012}, which provides 
+Python bindings for \texttt{miriad} \citep{Sault1995,Sault2011},
+and the \texttt{Obit / ParselTongue} packages 
+\citep{Cotton2008,Cotton2013,Kettenis2006, Kettenis2012}, which provide 
+Python bindings for AIPS \citep{Fomalont1981}. 
+We refer the reader to \cite{Williams2012} for further discussion on these
+packages and their merits.
+
+Cross-language binding modules are usually the most desirable solution for developing a scriptable interface to routines written in a low-level language, since a well-written set of modules will provide a high-performance, seamless interface between the external package and the user's programming language of choice.
+However, there are associated costs and requirements that may make such an approach impractical. 
+In astronomy, the primary issues with software development are usually those of available developer time and expertise.
+Astronomers with knowledge of both high-level and low-level languages, and how to implement bindings between them, are rare. 
+Even if someone with the requisite skills is available, the task of creating bindings and porting the required pipeline-logic to a high-level language may require a significant investment of developer time, both to understand the logic implemented in the legacy system, and to verify that it is faithfully reproduced in the `ported' version. 
+At the end-user level, there is also the problem of familiarity: a cross-language port of a well-used legacy package will require users to re-learn the interface via its new bindings. 
+Finally, there are the twin issues of access to source code, and maintenance --- 
+if a tool is proprietary, or if the source is unavailable for other reasons, or non-trivial to compile, then this presents an additional hurdle to implementation and use of bindings. 
+Any changes to the original package must also be reflected in the bindings modules, requiring code-maintenance and recompilation on a schedule tied to the external package.
+
+As such, implementing binding modules from scratch may be 
+overkill.
+% an expensive means of achieving interoperability,  when
+%  other, cruder methods might suffice. 
+Some alternative approaches to using low-level or legacy codes from a higher-level language are described below.
+
+\subsubsection{Sub-process calls}
+\label{sec:subprocess}
+If an external tool is usually invoked via an executable which takes command line arguments and then requires no further interaction, it is often trivial to invoke in a scripted fashion (otherwise known as `spawning' or `calling out' to a sub-process). 
+The built in Python library \texttt{subprocess} provides a perfectly adequate interface when this is the case. 
+We also direct the reader towards the \texttt{sh} 
+package\footnote{
+\url{http://amoffat.github.io/sh/}
+}, which 
+provides an alternative interface in which external commands may be represented by objects akin to Python functions, making for a neater syntax in repeated usage.
+
+However, this approach falls down when invoking longer-running, 
+multi-step processes that may require user interaction. 
+While such tools often provide an option
+to run a series of commands from a script, parsing the concatenated output 
+from many individual commands to record details of the data-reduction, 
+or worse yet detecting error conditions and locating the cause, 
+can present a considerable challenge. 
+In addition, larger, interactive tools often incur a few seconds start-up
+time while the environment loads, and so repeatedly invoking the tool for 
+multiple smaller steps can be impractically slow. 
+
+\subsubsection{Terminal emulation}
+\label{sec:emulation}
+A third option is that of terminal emulation: spawn the external tool in a sub-process, but then interact with it by emulating interactive terminal input.
+While this is slightly more involved than a simple sub-process call it allows for a one-to-one mapping of the sub-routines presented by the external tool into the user's scripting language of choice, without any of the source modification or recompilation that implementing bindings requires. 
+
+In Python, terminal emulation functionality can be provided by a package called \texttt{pexpect}.
+The \texttt{pexpect} package file is small (a 132kB download) and only requires a working Python installation (v2.6 or greater) as a prerequisite. 
+
+When building an interface to a legacy tool using \texttt{pexpect} in Python, we have found that it usually makes sense to provide an interface class. 
+This class can be used to spawn the external process when initialized, store a reference to the \texttt{pexpect} object representing that process and the emulated terminal interface, handle the terminal interaction, and so on. 
+Implementation of the basic interface class is relatively simple. 
+The essential parameters are a regular expression representing the format of the command-line prompt presented by the external tool, the path to invoke the external tool, and any required environment variables.
+Once the underlying interface is in place, end-user scripts that would previously be invoked from within the external tool's interactive environment can immediately be employed as part of a larger pipeline. 
+Furthermore, the precise inputs passed via the interface can be recorded alongside any data-outputs, providing data-provenance, so that if an end-user later wishes to inspect the data-reduction process manually, they can load up the external tool and step through the recorded command-script, either verifying or varying the reduction steps as required.
+
+From this starting point, it is straightforward to build up a more comprehensive interface suitable for use in complex logic flows. Since the output from each command is available in a clearly separated block of text, it is often trivial to implement basic parsing routines that can recover information from the command-line output of the external tool, allowing for `if / else' logic branches in the larger pipeline which make use of intermediate outputs from the external tool. 
+If desirable, convenience routines can be added to ease the process of generating the commands passed to the external tool, providing an interface which is better suited to the high-level scripting language (while still allowing direct access to the external tool as required).
+
+Since this approach effectively treats an external tool's command-line interface as a programming interface, any updates to the external tool are unlikely to require changes to the scripting-interface, unless they involve changes that also change the user-interaction behaviour (with one caveat --- if output-parsing relies on a particular output format, this may be changed to another layout which is still human-friendly but breaks the fixed parser rules).
+
+In terms of performance, terminal emulation sits somewhere between that of cross-language bindings and simple sub-process invocation. 
+Small delays (typically around 0.05 seconds) in the input-output cycle must be allowed for when emulating terminal interaction, presumably due to the small but measurable time it takes for the external tool to parse the commands input. In addition, any overhead incurred when starting the external tool is still present. 
+However, once initialized, an instance of the external tool can be re-used for many commands, and so this start-up overhead is incurred fewer times when compared to simple sub-process calls. 
+
+
+It is this terminal-emulation approach that we adopted in implementing Python interfaces to the \texttt{AMI-REDUCE} and CASA packages, for reasons outlined below.
+
+\subsubsection{Use of terminal-emulation in \texttt{drive-ami} and \\ \texttt{drive-casa}}
+\label{sec:why-emulation}
+The \texttt{AMI-REDUCE} pipeline is implemented in \mbox{FORTRAN} 77, and comprises around 58,000 lines of 
+source-code\footnote{As analyzed using the \texttt{SLOCCount} utility: \\ \url{http://www.dwheeler.com/sloccount/}\\
+(Including component libraries.)}. 
+In the rare case that \texttt{AMI-REDUCE} needs to be run elsewhere than the MRAO it is typically distributed as a pre-built binary, with a copy of the source files included. 
+Despite the author's efforts to install appropriate dependencies and alter makefiles, building the package from source on a modern Ubuntu Linux installation proved to be problematic (as opposed to simply executing the pre-built binary, which was simple once the appropriate compatibility packages had been downloaded and installed). 
+Given the size and complexity of the codebase, the difficulties building from source, and the authors' lack of expertise in Fortran, we judged that implementing Python-bindings to the \texttt{AMI-REDUCE} \mbox{FORTRAN} routines directly would require a significant and costly investment of developer time, with little benefit given that \texttt{AMI-REDUCE} is not a widely-used software package. 
+As described in Section~\ref{sec:drive-ami}, simple sub-process calls to \texttt{AMI-REDUCE} were initially used in our end-to-end pipeline, but soon proved inadequate. 
+Terminal-emulation presented a compromise - greater control and flexibility in interfacing with \texttt{AMI-REDUCE}, without requiring a large effort to create \mbox{FORTRAN}/Python binding modules. 
+The added logging capabilities also provide reassurance that our data-reduction process is performing as expected, and can be verified manually if required.
+Development of the \texttt{drive-ami} interface using terminal emulation allowed for a relatively low initial time-investment to create a basic interface class. 
+Additional features such as error-handling and metadata-extraction were then added piecemeal on an `as needed' basis, since addition of minor features can typically be accomplished in a few hours.
+
+The case for writing a terminal-emulation tool for CASA is less obvious, since \texttt{casapy} already provides a scriptable Python interface --- on the face of it, writing a Python library to interface with a Python interpreter is faintly ridiculous.
+However, as detailed in in Section~\ref{sec:drive-casa}, use of CASA routines alongside other Python libraries is otherwise a difficult and error-prone process. 
+In the long-term this may change, but for now the additional logging capabilities, together with the fact that \texttt{drive-casa} can be trivially installed on most systems, mean that it provides significant benefits to the end-user in terms of both convenience and reproducibility.
+
+
+\subsection{Writing re-usable Python codes}
+\label{sec:code-reuse}
+This work highlights a pressing issue for the field of astronomy as a whole (and wider academia): that of software interoperability and re-use. 
 There will always be a trade-off to be made in choosing to incorporate legacy packages into new efforts, or starting afresh with a re-write in the language \textit{du jour} --- nothing has changed there. 
 However, when writing new software, we would encourage authors to consider how their code might be adapted for re-use, either in part or in whole. 
 In the wider context of software development, situations are so varied that it is hard to give any firm advice on this topic (or at least,  beyond the scope of this work). 
@@ -548,6 +560,16 @@ to colourise the terminal output by logging category.
 
 Finally, we highly recommended that even if a scientific code follows none of this advice, it should still be made freely available. 
 Stylistic changes to suit a given context can always be made after release, and the benefits of source code sharing are significant, perhaps most crucially for encouraging reproducibility \citep[see e.g.][for further discussion]{Shamir2013}.
+
+
+\section{Summary}
+\label{sec:conclusion}
+In sections~\ref{sec:drive-ami} and \ref{sec:drive-casa} we explored the potential for using terminal-interaction emulation as a means of rapidly developing a Python interface to externally developed pipeline tools which provide a command-line interface, as an alternative to cross-language bindings. 
+We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance. 
+In Section~\ref{sec:chimenea} we introduced \texttt{chimenea}, a pipeline for automated imaging of radio-synthesis data. 
+Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
+We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015,PerezTorres2014}.
+In Section~\ref{sec:amisurvey} we described how we have integrated these packages into a single tool that enables fully-automated data reduction for the ALARRM survey programme, and presented some basic checks of pipeline integrity.
 
 
 % In short, the differences between the 
