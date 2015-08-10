@@ -111,10 +111,11 @@ In Section~\ref{sec:drive-ami} we introduce AMI-LA, and describe how we have emp
 % 
 Section~\ref{sec:drive-casa} discusses our choice to build upon the CASA routines to implement the imaging stage, and explains the rationale and design of our external
 scripting interface, \texttt{drive-casa}.
-Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives an overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}, including a basic `quality control' analysis demonstrating that the pipeline behaves as expected.
+Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives an overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}.
+Section~\ref{sec:results} presents a basic performance analysis demonstrating that the pipeline behaves as expected.
 % Finally, Section~\ref{sec:discuss} gives some thoughts on the importance of interoperability in future astronomical software, and we conclude in Section~\ref{sec:conclusion}.
-In the discussion section, we first describe known limitations of our \texttt{chimenea} algorithm, and desribe some possible alternatives and future extensions (\S\ref{sec:chimenea-discussion}). 
-We then describe and compare different methods for solving a problem relevant in the wider context of software in academia: that of interfacing with legacy software, and explain the choice of method for this work (\S\ref{sec:software}). 
+In the discussion section, we describe known limitations of our \texttt{chimenea} algorithm, then cover some possible alternatives and future extensions (\S\ref{sec:chimenea-discussion}). 
+We then describe and compare different methods for solving a problem relevant in the wider context of software in academia --- that of interfacing with legacy software --- and explain the choice of method for this work (\S\ref{sec:software}). 
 We conclude the discussion with some general recommendations for writing re-usable Python codes (\S\ref{sec:code-reuse}). 
 Finally, we summarise this work in Section~\ref{sec:conclusion}.
 
@@ -246,18 +247,25 @@ In the meantime, \texttt{drive-casa} provides a reliable method for incorporatin
 Prompt analysis of results from the ALARRM programme requires frequent re-reduction of target-datasets, as additional observations become available.
 In order to minimise the human effort associated with the imaging stage of the data-reduction, we created a tool for automated imaging of pre-calibrated multi-epoch radio-synthesis data, `\texttt{chimenea}', which is a small pipeline built atop the CASA subroutines (using \texttt{drive-casa} to provide an interface layer). 
 
-The \texttt{chimenea} pipeline is designed to automatically choose a suitable set of parameters for applying the Clean algorithm \citep{Hogbom1974,Schwab1984}, addressing two key issues: how `deep' should we Clean (i.e., at what level of peak pixel value in the residuals map do we terminate the Clean process), and how the placing of model components should be constrained via the Clean mask. 
+The \texttt{chimenea} pipeline is designed to automatically choose a suitable set of parameters for applying the Clean algorithm \citep{Hogbom1974,Schwab1984}, specifically determining two key values: how `deep' should we Clean (i.e., at what level of peak pixel value in the residuals map do we terminate the Clean process), and how the placing of model components should be constrained via the Clean mask. 
 When performing a blind search for transients, unconstrained or `open' Clean reductions are preferable, since we do not know where a transient source may appear, and an `un-Cleaned' source will be harder to detect since the flux remains spread over the core and sidelobes of the dirty beam. 
-As such, when imaging a field of view which contains no detectable steady sources (to search for transient sources), a simple approach to automating this process is to estimate the root-mean-square noise-level (RMS) from the dirty map, and then apply an open-Clean process, with the Clean termination threshold set to a multiple of the estimated RMS (typically around three). 
+As such, when imaging a field of view which contains no detectable steady sources (to search for transient sources), a simple approach to automating this process is to estimate the root-mean-square noise-level (RMS) from the dirty map, and then apply an open-Clean process, with the Clean termination threshold set to a multiple of the estimated RMS (typically around three).\footnote{%
+Alternatively, if the performance of the telescope is well characterised, the visibilities may be analyzed directly to determine the total integration time excluding flagged data, and this value may be used to directly estimate the the RMS noise level. 
+However, `well characterised' can be a difficult ideal to attain when telescope sensitivity may depend on miriad factors such as atmospheric moisture level, local ambient temperature, etc, and even then image-RMS may differ depending on proximity to a bright source.
+}
 However, this simple approach produces poor results when a bright steady source is located in the field of view, particularly if the single-epoch data being imaged is from a short integration with poor \textit{uv}-plane coverage.
 In this case, the RMS as estimated from the dirty map will often be positively biased, due to additional pixel-value variance from the side-lobes of the bright source. 
-Additionally, an open Clean may erroneously place model components in the side-lobes of the bright source, leading to artifical source-artefacts and reduced flux assigned to the model component at the true location of the bright source.
-Therefore, when imaging a field containing a known bright source the best strategy is to perform a constrained (`masked') Clean --- but this potentially leaves transient sources `un-Cleaned', as noted previously.
+Additionally, an open-Clean process may erroneously place model components in the side-lobes of the bright source, leading to artifical source-artefacts and reduced flux assigned to the model component at the true location of the bright source \citep[a phenomenon known as `clean bias', see e.g.][for details]{Condon1998,White1997}.
+Therefore, when imaging a field containing a known bright source the best strategy is to perform a constrained (`masked') Clean --- but this potentially leaves transient sources `un-Cleaned', as noted previously. 
 
-To resolve this problem, \texttt{chimenea} takes an iterative approach that makes use of all available epochs of data for a given survey field.
+Previous transient surveys have tackled this problem in different ways. \citet{Bell2014} performed phase and amplitude self-calibration on any standard calibration sources in the field of view, modelled and subtracted the contribution to the visibilities from those calibrators, and then finally applied an open-Clean process to the resulting image with a very limited number of Clean iterations, to avoid over-cleaning any remaining sources. 
+This is effective at reducing side-lobes from calibration sources but will produce sub-optimal results if a bright source is present which is not identified as a calibrator. 
+Alternatively, a manual round of source-identification may be employed prior to performing a final masked-Clean \citep{Miller2008,Mooley2013}, which is undoubtedly effective but can quickly become labour-intensive in the case of transient surveys, and is unsuitable for near-real-time analysis in any case.
+
+The algorithm encoded in the \texttt{chimenea} package takes an iterative approach that makes use of all available epochs of data for a given survey field.
 Initially, the data from all epochs are concatenated and an open-Clean process is applied, which is fairly robust to artefacts given enough epochs of data, due to improved \textit{uv}-plane coverage. 
 To ensure the RMS-estimation (and hence Clean-termination threshold) is not biased by side-lobes in the dirty map, we re-estimate the RMS after applying an open Clean and then reapply the Clean process with a lower threshold if a significant drop in RMS is detected. 
-The deep-image synthesized from the concatenated data is then used to search for any steady sources in the field of view which are detectable with a high signal-to-noise ratio.
+The deep image synthesized from the concatenated data is then used to search for any steady sources in the field of view which are detectable with a high signal-to-noise ratio.
 Next, each single-epoch observation is processed individually. 
 We initially apply a masked Clean, to constrain the placement of Clean-model components to the location of any known bright sources in the field (as detected in the deep image) --- this avoids the issues of side-lobe artefacts due to poor \textit{uv}-coverage in shorter observations. 
 Finally, we apply an open Clean to each epoch (initialized using the source-model components from the masked clean) in case a transient source is present at detectable flux-density levels.
@@ -267,7 +275,7 @@ A step-by-step description of the process, relating to the different stages deno
 
 \begin{enumerate}[I]
  \item Concatenating data from all epochs gives better \textit{uv}-coverage and produces a `deep' map with lower noise, which is ideal for reliably locating steady sources in the field of view. To generate this deep map we apply the Cotton-Schwab variant of the Clean algorithm \citep{Schwab1984} to the concatenated data, allowing unconstrained placing of model components within a box-region corresponding to the central quarter of the synthesized map (referred to as an `open Clean' in Figure~\ref{fig:chimenea}). 
-Sources outside this central region are attenuated by a primary beam response factor of less that 1 in 20,000 relative to the pointing centre, and so a wider open-Clean region is unnecessary unless this margin happens to contain a source with flux level on the order of one Jansky. 
+Sources outside this central region are attenuated by a primary beam response factor of less than 1 in 20,000 relative to the pointing centre, and so a wider open-Clean region is unnecessary unless this margin happens to contain a source with flux level on the order of one Jansky. 
 
  \item Applying the Clean algorithm requires that we give a pixel-value termination threshold, which is typically chosen as a multiple of the background root-mean-square (RMS) noise level. 
  However, in order to estimate the RMS, we require an image to sample. 
@@ -307,7 +315,7 @@ An additional termination criterion is applied --- maximum number of iterations 
 \end{figure}
 
 We note that the data-flow currently implemented in \texttt{chimenea} represents an heuristic approach to automated radio-synthesis imaging, and may change in the future as we gain further experience.
-The current pipeline is already a considerable improvement over our initial automated solution, 
+The current pipeline is already a considerable improvement (see Section~\ref{sec:results}) over our initial automated solution, 
 which was to simply perform an independent open Clean on each single-epoch observation \citep{Staley2013}, 
 but particularly challenging or scientifically significant datasets will still warrant manual care and attention; \texttt{chimenea} provides a reduction which can sometimes be improved further but is good enough for scientific analysis in most cases.
 Additionally, \texttt{chimenea} represents significant value as a working software-implementation, complete with extensive logging, a clearly structured logic-flow, and a number of simple data-structures which aim to make tractable the problem of managing numerous intermediate datasets and configuration parameters. 
@@ -346,6 +354,8 @@ These calibrated observations may be filtered according to quality-control crite
 The grouped-and-filtered observations are then passed, along with configuration parameters (e.g. Clean image-synthesis settings) appropriate to the ALARRM data, to the main \texttt{chimenea} pipeline function for processing. 
 Finally, a full listing of the data-products is output in JSON format, for easy ingestion by further analysis tools. 
 
+\section{Performance testing and results}
+\label{sec:results}
 To thoroughly test the \texttt{AMIsurvey} pipeline, we reduced a significant portion of the ALARRM data obtained to date: 1035 observations spread over 165 target fields, representing approximately 100 days of telescope time with AMI-LA (approx. 100\,GB of raw data). 
 The calibration and imaging stages took around eight and six hours respectively on a single CPU-core. 
 The metadata associated with these reductions were then analysed to confirm that the pipeline generally behaves as expected, identify any problematic datasets, and place some quantitative values on the benefits of applying the full \texttt{chimenea} algorithm, as opposed to simply applying a single Clean to each observation.\footnote{%
