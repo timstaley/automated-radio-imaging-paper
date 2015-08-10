@@ -114,7 +114,7 @@ scripting interface, \texttt{drive-casa}.
 Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives an overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}.
 Section~\ref{sec:results} presents a basic performance analysis demonstrating that the pipeline behaves as expected.
 % Finally, Section~\ref{sec:discuss} gives some thoughts on the importance of interoperability in future astronomical software, and we conclude in Section~\ref{sec:conclusion}.
-In the discussion section, we describe known limitations of our \texttt{chimenea} algorithm, then cover some possible alternatives and future extensions (\S\ref{sec:chimenea-discussion}). 
+In the discussion section, we describe known limitations of our \texttt{chimenea} algorithm, then cover some possible extensions and alternatives (\S\ref{sec:chimenea-discussion}). 
 We then describe and compare different methods for solving a problem relevant in the wider context of software in academia --- that of interfacing with legacy software --- and explain the choice of method for this work (\S\ref{sec:software}). 
 We conclude the discussion with some general recommendations for writing re-usable Python codes (\S\ref{sec:code-reuse}). 
 Finally, we summarise this work in Section~\ref{sec:conclusion}.
@@ -314,7 +314,7 @@ An additional termination criterion is applied --- maximum number of iterations 
 \end{center} 
 \end{figure}
 
-We note that the data-flow currently implemented in \texttt{chimenea} represents an heuristic approach to automated radio-synthesis imaging, and may change in the future as we gain further experience.
+We note that the data-flow currently implemented in \texttt{chimenea} has been guided by our experience in reducing the ALARRM datasets, and may change in the future as we gain further experience.
 The current pipeline is already a considerable improvement (see Section~\ref{sec:results}) over our initial automated solution, 
 which was to simply perform an independent open Clean on each single-epoch observation \citep{Staley2013}, 
 but particularly challenging or scientifically significant datasets will still warrant manual care and attention; \texttt{chimenea} provides a reduction which can sometimes be improved further but is good enough for scientific analysis in most cases.
@@ -385,8 +385,8 @@ As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-
 Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. However, some observations of fields with a bright steady source do not show such improvement. This is to be expected if short observations, or those which undergo a high degree of RFI flagging, have sufficiently poor data quality that bright source sidelobes are not the dominant contributing factor to background variation. To test this hypothesis, we made a simple cut on the data by replotting only observations of duration greater than 3.5 hours, as shown in Figure~\ref{fig:rms_long_duration} (leaving 289 observations spread over 65 different targets). This plot shows a much clearer relation between bright-source flux-density and RMS-estimate reduction.
 
 
-We note that the RMS reduction factors displayed in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration} give a good indication of the improved imaging quality of the \texttt{AMIsurvey} pipeline compared to our early reductions (which employed a simple RMS-estimate and open-Clean), since the naively-reduced images would be cleaned to a threshold determined by the dirty-map estimated RMS. 
-The addition of a masked-Clean process and data-product should also help to avoid under-estimation of flux in bright sources (`Clean-bias').
+We note that the RMS reduction factors displayed in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration} give an indication of the improved imaging quality of the \texttt{AMIsurvey} pipeline compared to our early reductions (which employed a simple RMS-estimate and open-Clean), since the naively-reduced images would be cleaned to a threshold determined by the dirty-map estimated RMS. 
+The addition of a masked-Clean process and output image should also help to avoid under-estimation of flux in bright sources (`Clean-bias').
 However, the ultimate figures-of-merit relevant to transient surveys are those relating to sensitivity and accuracy in transient detection. 
 Experience suggests the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing against both real and simulated visbility data, which we leave to future investigation.
 
@@ -422,8 +422,21 @@ Experience suggests the trade-off between sensitivity to real transients and art
 
 \section{Discussion}
 \label{sec:discussion}
-\subsection{Limitations, alternatives and possible extensions to \texttt{chimenea}}
+\subsection{Limitations, possible extensions and alternatives to \texttt{chimenea}}
 \label{sec:chimenea-discussion}
+While \texttt{chimenea} and the other packages presented here have proven useful in the reduction of ALARRM datasets, the approach is not without its limitations.
+The most immediate problem is that the RMS-estimation procedures do not work well in the prescence of extended emission or complex blended sources, and so fields containing such sources still need to be manually reduced (though these types of source are always tricky when reducing radio-synthesis data). 
+The iterative approach also requires a non-trivial amount of computational overhead, since a field of view may be processed with a Clean operation multiple times as the background RMS is re-estimated. 
+The ALARRM datasets to date have been relatively quick to reduce, with file sizes on the order of a gigabyte or less and reduction times on the order of minutes, but for a large dataset the re-Cleaning may become a significant contribution to the overall processing time. 
+
+We should also reiterate that this work has been motivated to date by reproducing the data-reduction steps we would have previously applied manually. 
+With this benchmark implementation in place, we can begin to consider alterations that may improve our sensitivity and accuracy. 
+A logical extension would be to utilise \textit{uv}-plane model fitting, to improve the accuracy of flux-density measurements after candidate sources have been identified via image-plane source-finding. 
+This avoids the degeneracies involved in `fitting a model to a model' --- i.e. fitting a source-model to a synthesized image that has already been produced by inference from the raw data  \citep{MartiVidal2014}.
+Additionally, it would be interesting to compare the results from our pipeline to some of the more recent source-detection and modelling approaches that have been developed on the basis of Bayesian inference \citep[e.g.][]{Sutter2014,Lochner2015}, since these provide a full modelling of the data from the \textit{uv}-plane information, although a significant trade-off in terms of increased computational overhead is to be expected. 
+Image-plane transient-detection pipelines for the SKA will have stringent demands on both accuracy and computational budget, and so it may be that some hybrid or simplified image-synthesis approach will turn out to be most attractive in the long run.
+
+
 \subsection{Methods for interfacing with legacy or proprietary software}
 \label{sec:software}
 The \texttt{drive-ami} and \texttt{drive-casa} software packages discussed in this paper solve a problem commonly found throughout software-intensive fields of both academia and industry --- how to employ (in an automated fashion) a software package that cannot be directly called as a library. This need may arise when the external package is written in a different programming language to that of the user's codebase, or because the external codebase is legacy or proprietary and only the command-line interface is accessible.
