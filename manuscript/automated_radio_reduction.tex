@@ -107,17 +107,16 @@ The final package, \texttt{AMIsurvey} \citep{Staley2015_amisurvey}, ties togethe
 
 This paper is structured as follows: 
 % 
-In Section~\ref{sec:drive-ami} we introduce AMI-LA, and describe how we have employed the \texttt{pexpect} Python library to create a fully scriptable interface to its associated calibration pipeline.
+In Section~\ref{sec:drive-ami} we introduce AMI-LA, and describe a new fully scriptable Python interface to its associated calibration pipeline.
 % 
 Section~\ref{sec:drive-casa} discusses our choice to build upon the CASA routines to implement the imaging stage, and explains the rationale and design of our external
 scripting interface, \texttt{drive-casa}.
 Section~\ref{sec:chimenea} describes the automated imaging algorithm implemented in the \texttt{chimenea} package, and Section~\ref{sec:amisurvey} gives an overview of the end-to-end ALARRM data-reduction pipeline encoded by \texttt{AMIsurvey}.
 Section~\ref{sec:results} presents a basic performance analysis demonstrating that the pipeline behaves as expected.
 % Finally, Section~\ref{sec:discuss} gives some thoughts on the importance of interoperability in future astronomical software, and we conclude in Section~\ref{sec:conclusion}.
-In the discussion section, we describe known limitations of our \texttt{chimenea} algorithm, then cover some possible extensions and alternatives (\S\ref{sec:chimenea-discussion}). 
+In the discussion section, we describe known limitations of our \texttt{chimenea} algorithm, and cover some possible extensions and alternatives (\S\ref{sec:chimenea-discussion}). 
 We then describe and compare different methods for solving a problem relevant in the wider context of software in academia --- that of interfacing with legacy software --- and explain the choice of method for this work (\S\ref{sec:software}). 
-We conclude the discussion with some general recommendations for writing re-usable Python codes (\S\ref{sec:code-reuse}). 
-Finally, we summarise this work in Section~\ref{sec:conclusion}.
+We finish the discussion with some general recommendations for writing re-usable Python codes (\S\ref{sec:code-reuse}), and conclude in Section~\ref{sec:conclusion}.
 
 
 \section{Automated calibration of AMI-LA data with \texttt{drive-ami}}
@@ -148,7 +147,7 @@ a pure-Python library for emulating terminal-interaction, as discussed in subsec
 In addition to allowing step-by-step calling of the \texttt{AMI-REDUCE} functionality from a Python script, \texttt{drive-ami} provides a number of enhancements to the data-reduction process.
 Data-provenance and reproducibility are improved; all the \texttt{AMI-REDUCE} commands are recorded in a log-file along with the output \textit{uv}-FITS data. 
 In a separate file, all textual output displayed during the reduction process is logged alongside the input commands, so that the end-user may read back over the reduction dialogue as if scrolling back through a terminal history arising from using \texttt{AMI-REDUCE} interactively. 
-A variety of metadata such as observation times, calibrator source, rain modulation and percent of data flagged due to radio-frequency interference is also parsed from the output and stored in JavaScript Object Notation (JSON) format, which has the benefit of being both human-readable and trivially parsed in most high-level programming languages. 
+A variety of metadata such as observation times, calibrator source, rain modulation and percent of data flagged due to radio-frequency interference are also parsed from the output and stored in JavaScript Object Notation (JSON) format, which has the benefit of being both human-readable and trivially parsed in most high-level programming languages. 
 
 As an added convenience, \texttt{drive-ami} can also be used to help configure reduction of multiple-epoch data for a source observed with AMI-LA. 
 While observations are usually easy to sort by their filename-prefix (which refers to the target name), occasionally a target is renamed after the initial epoch of observation (e.g. to reflect an assigned GRB ID), or a prefix may be incremented if multiple observations are performed in a single day. 
@@ -244,7 +243,7 @@ In the meantime, \texttt{drive-casa} provides a reliable method for incorporatin
 
 \section{Automated imaging of multi-epoch radio-synthesis data with \texttt{chimenea}}
 \label{sec:chimenea}
-Prompt analysis of results from the ALARRM programme requires frequent re-reduction of target-datasets, as additional observations become available.
+Prompt analysis of results from the ALARRM programme requires frequent re-reduction of target-datasets as additional observations become available.
 In order to minimise the human effort associated with the imaging stage of the data-reduction, we created a tool for automated imaging of pre-calibrated multi-epoch radio-synthesis data, `\texttt{chimenea}', which is a small pipeline built atop the CASA subroutines (using \texttt{drive-casa} to provide an interface layer). 
 
 The \texttt{chimenea} pipeline is designed to automatically choose a suitable set of parameters for applying the Clean algorithm \citep{Hogbom1974,Schwab1984}, specifically determining two key values: how `deep' should we Clean (i.e., at what level of peak pixel value in the residuals map do we terminate the Clean process), and how the placing of model components should be constrained via the Clean mask. 
@@ -256,9 +255,9 @@ However, `well characterised' can be a difficult ideal to attain when telescope 
 However, this simple approach produces poor results when a bright steady source is located in the field of view, particularly if the single-epoch data being imaged is from a short integration with poor \textit{uv}-plane coverage.
 In this case, the RMS as estimated from the dirty map will often be positively biased, due to additional pixel-value variance from the side-lobes of the bright source. 
 Additionally, an open-Clean process may erroneously place model components in the side-lobes of the bright source, leading to artifical source-artefacts and reduced flux assigned to the model component at the true location of the bright source \citep[a phenomenon known as `clean bias', see e.g.][for details]{Condon1998,White1997}.
-Therefore, when imaging a field containing a known bright source the best strategy is to perform a constrained (`masked') Clean --- but this potentially leaves transient sources `un-Cleaned', as noted previously. 
+Therefore, when imaging a field containing a known bright source a better strategy is to perform a constrained (`masked') Clean --- but this potentially leaves transient sources `un-Cleaned', as noted previously. 
 
-Previous transient surveys have tackled this problem in different ways. \citet{Bell2014} performed phase and amplitude self-calibration on any standard calibration sources in the field of view, modelled and subtracted the contribution to the visibilities from those calibrators, and then finally applied an open-Clean process to the resulting image with a very limited number of Clean iterations, to avoid over-cleaning any remaining sources. 
+Previous radio-transient surveys have tackled this problem in different ways. \citet{Bell2014} performed phase and amplitude self-calibration on any standard calibration sources in the field of view, modelled and subtracted the contribution to the visibilities from those calibrators, and then finally applied an open-Clean process to the resulting image with a very limited number of Clean iterations, to avoid over-cleaning any remaining sources. 
 This is effective at reducing side-lobes from calibration sources but will produce sub-optimal results if a bright source is present which is not identified as a calibrator. 
 Alternatively, a manual round of source-identification may be employed prior to performing a final masked-Clean \citep{Miller2008,Mooley2013}, which is undoubtedly effective but can quickly become labour-intensive in the case of transient surveys, and is unsuitable for near-real-time analysis in any case.
 
@@ -350,7 +349,7 @@ This package glues together the calibration and imaging processes implemented vi
 We make use of the the Python standard library package \texttt{argparse} to provide a user-friendly command line interface.
 Initially, the \texttt{AMIsurvey} tool loads lists of calibrated \textit{uv}-FITS files and associated metadata from the JSON files output by \texttt{drive-ami}. 
 The data-locations and metadata are then trivially converted into the data-structure used by the \texttt{chimenea} pipeline, before being sorted into groups. 
-These calibrated observations may be filtered according to quality-control criteria (e.g. rain amplitude modulation) to identify and remove any problematic observations.
+These calibrated observations may be filtered according to quality-control criteria (e.g. limits on rain amplitude modulation) to identify and remove any problematic observations.
 The grouped-and-filtered observations are then passed, along with configuration parameters (e.g. Clean image-synthesis settings) appropriate to the ALARRM data, to the main \texttt{chimenea} pipeline function for processing. 
 Finally, a full listing of the data-products is output in JSON format, for easy ingestion by further analysis tools. 
 
@@ -385,7 +384,7 @@ As can be seen in Figure~\ref{fig:rms}, when a bright source is present the RMS-
 Since this RMS-estimate is then used when applying the open-Clean process to look for single-epoch transients, it suggests a potentially significant improvement in sensitivity to transient sources when a bright steady source is present in the field of view. However, some observations of fields with a bright steady source do not show such improvement. This is to be expected if short observations, or those which undergo a high degree of RFI flagging, have sufficiently poor data quality that bright source sidelobes are not the dominant contributing factor to background variation. To test this hypothesis, we made a simple cut on the data by replotting only observations of duration greater than 3.5 hours, as shown in Figure~\ref{fig:rms_long_duration} (leaving 289 observations spread over 65 different targets). This plot shows a much clearer relation between bright-source flux-density and RMS-estimate reduction.
 
 
-We note that the RMS reduction factors displayed in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration} give an indication of the improved imaging quality of the \texttt{AMIsurvey} pipeline compared to our early reductions (which employed a simple RMS-estimate and open-Clean), since the naively-reduced images would be cleaned to a threshold determined by the dirty-map estimated RMS. 
+We note that the RMS reduction factors (between dirty-map RMS-estimate and final RMS-estimate) displayed in Figures~\ref{fig:rms}~and~\ref{fig:rms_long_duration} give an indication of the improved imaging quality of the \texttt{AMIsurvey} pipeline compared to our early reductions, since the naively-reduced images would be cleaned to a threshold determined by the dirty-map estimated RMS. 
 The addition of a masked-Clean process and output image should also help to avoid under-estimation of flux in bright sources (`Clean-bias').
 However, the ultimate figures-of-merit relevant to transient surveys are those relating to sensitivity and accuracy in transient detection. 
 Experience suggests the trade-off between sensitivity to real transients and artefacts in radio-astronomy is difficult to quantify without extensive testing against both real and simulated visbility data, which we leave to future investigation.
@@ -426,12 +425,12 @@ Experience suggests the trade-off between sensitivity to real transients and art
 \label{sec:chimenea-discussion}
 While \texttt{chimenea} and the other packages presented here have proven useful in the reduction of ALARRM datasets, the approach is not without its limitations.
 The most immediate problem is that the RMS-estimation procedures do not work well in the prescence of extended emission or complex blended sources, and so fields containing such sources still need to be manually reduced (though these types of source are always tricky when reducing radio-synthesis data). 
-The iterative approach also requires a non-trivial amount of computational overhead, since a field of view may be processed with a Clean operation multiple times as the background RMS is re-estimated. 
+The iterative approach also adds a non-trivial amount of computational overhead, since a field of view may be processed with a Clean operation multiple times as the background RMS is re-estimated. 
 The ALARRM datasets to date have been relatively quick to reduce, with file sizes on the order of a gigabyte or less and reduction times on the order of minutes, but for a large dataset the re-Cleaning may become a significant contribution to the overall processing time. 
 
-We should also reiterate that this work has been motivated to date by reproducing the data-reduction steps we would have previously applied manually. 
-With this benchmark implementation in place, we can begin to consider alterations that may improve our sensitivity and accuracy. 
-A logical extension would be to utilise \textit{uv}-plane model fitting, to improve the accuracy of flux-density measurements after candidate sources have been identified via image-plane source-finding. 
+We should also reiterate that this work has been motivated to date by reproducing the data-reduction steps we would previously have applied manually. 
+With this benchmark implementation in place, we can begin to consider alterations which might improve sensitivity and accuracy. 
+A logical extension would be to utilise \textit{uv}-plane model fitting, to improve the accuracy of flux-density measurements after candidate sources have been identified via the current pipeline. 
 This avoids the degeneracies involved in `fitting a model to a model' --- i.e. fitting a source-model to a synthesized image that has already been produced by inference from the raw data  \citep{MartiVidal2014}.
 Additionally, it would be interesting to compare the results from our pipeline to some of the more recent source-detection and modelling approaches that have been developed on the basis of Bayesian inference \citep[e.g.][]{Sutter2014,Lochner2015}, since these provide a full modelling of the data from the \textit{uv}-plane information, although a significant trade-off in terms of increased computational overhead is to be expected. 
 Image-plane transient-detection pipelines for the SKA will have stringent demands on both accuracy and computational budget, and so it may be that some hybrid or simplified image-synthesis approach will turn out to be most attractive in the long run.
@@ -439,7 +438,8 @@ Image-plane transient-detection pipelines for the SKA will have stringent demand
 
 \subsection{Methods for interfacing with legacy or proprietary software}
 \label{sec:software}
-The \texttt{drive-ami} and \texttt{drive-casa} software packages discussed in this paper solve a problem commonly found throughout software-intensive fields of both academia and industry --- how to employ (in an automated fashion) a software package that cannot be directly called as a library. This need may arise when the external package is written in a different programming language to that of the user's codebase, or because the external codebase is legacy or proprietary and only the command-line interface is accessible.
+The \texttt{drive-ami} and \texttt{drive-casa} software packages discussed in this paper solve a problem commonly found throughout software-intensive fields of both academia and industry --- how to employ (in an automated fashion) a software package that cannot be directly called as a library. 
+This may arise when the external package is written in a different programming language to that of the user's codebase, or because the external codebase is legacy or proprietary and only the command-line interface is accessible.
 In this subsection we describe three approaches that may be adopted when creating an interface to legacy or cross-language software, together with their merits and drawbacks, and explain why we chose to use terminal-emulation in this work.
 
 \subsubsection{Cross-language bindings}
@@ -507,7 +507,9 @@ multiple smaller steps can be impractically slow.
 A third option is that of terminal emulation: spawn the external tool in a sub-process, but then interact with it by emulating interactive terminal input.
 While this is slightly more involved than a simple sub-process call it allows for a one-to-one mapping of the sub-routines presented by the external tool into the user's scripting language of choice, without any of the source modification or recompilation that implementing bindings requires. 
 
-In Python, terminal emulation functionality can be provided by a package called \texttt{pexpect}.
+In Python, terminal emulation functionality can be provided by a package called \texttt{pexpect}\footnote{%
+\url{https://github.com/pexpect/pexpect}%
+}.
 The \texttt{pexpect} package file is small (a 132kB download) and only requires a working Python installation (v2.6 or greater) as a prerequisite. 
 
 When building an interface to a legacy tool using \texttt{pexpect} in Python, we have found that it usually makes sense to provide an interface class. 
@@ -588,15 +590,19 @@ Finally, we highly recommended that even if a scientific code follows none of th
 Stylistic changes to suit a given context can always be made after release, and the benefits of source code sharing are significant, perhaps most crucially for encouraging reproducibility \citep[see e.g.][for further discussion]{Shamir2013}.
 
 
-\section{Summary}
+\section{Conclusions}
 \label{sec:conclusion}
-In sections~\ref{sec:drive-ami} and \ref{sec:drive-casa} we explored the potential for using terminal-interaction emulation as a means of rapidly developing a Python interface to externally developed pipeline tools which provide a command-line interface, as an alternative to cross-language bindings. 
-We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance. 
-In Section~\ref{sec:chimenea} we introduced \texttt{chimenea}, a pipeline for automated imaging of radio-synthesis data. 
-Although heuristic in approach, \texttt{chimenea} already provides a useful component in automation data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
+In this work we have described an automated pipeline for reduction of radio-synthesis data obtained for transient follow-up, and undertaken inital performance tests which show it behaves as desired. 
+Although heuristic in approach, \texttt{chimenea} already provides a useful component in automatic data-reduction pipelines, and serves as a test-bed and benchmark for more sophisticated reduction algorithms. 
+We have highlighted limitations to the pipeline and discussed possible avenues for future development and exploration.
 We note that extensive further development in the area of automated imaging will be essential for performing real-time image-plane transient surveys, one of the key science drivers for the SKA \citep{Burlon2015,Corbel2015,PerezTorres2014}.
-In Section~\ref{sec:amisurvey} we described how we have integrated these packages into a single tool that enables fully-automated data reduction for the ALARRM survey programme, and presented some basic checks of pipeline integrity.
 
+From a technical standpoint, we have demonstrated the effectiveness of terminal-emulation as a method for interfacing with legacy or externally maintained software.
+We found this approach relatively easy to implement and well suited to our needs, especially given the added benefits of easy manual reproducibility and data-provenance.  
+
+Finally, we have provided some basic guidelines and examples towards writing re-usable Python codes in astronomy. 
+This topic could be the subject of a much larger work, but we hope the suggestions herein will stimulate further thought and discussion. 
+In particular, we hope that our efforts to separate and document the components of the \texttt{AMIsurvey} pipeline will result in productive re-use elsewhere.
 
 % In short, the differences between the 
 % approaches may be summarized as follows:
