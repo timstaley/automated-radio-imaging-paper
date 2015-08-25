@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.8)
 set ( MANUSCRIPT_NAME automated_radio_reduction )
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-set (FIGURE_OUTPUT_DIR ${PROJECT_BINARY_DIR}/figures)
+
 
 find_package (LATEX REQUIRED)
 find_package (LatexMk REQUIRED)
@@ -19,12 +19,16 @@ execute_process (
 
 
 # We simply copy the static figures from the source tree to the build
-set (STATIC_FIGURES
+file(GLOB STATIC_FIGURES
+    "${PROJECT_SOURCE_DIR}/figures/*.pdf"
 )
+
 foreach (figure ${STATIC_FIGURES})
+    get_filename_component(figure_basename ${figure} NAME)
+    MESSAGE( STATUS "Copying figure:  " ${figure_basename} )
     configure_file (
-        ${PROJECT_SOURCE_DIR}/figures/${figure}
-        ${FIGURE_OUTPUT_DIR}/${figure}
+        ${figure}
+        ${PROJECT_BINARY_DIR}/figures/${figure_basename}
         COPYONLY
     )
 endforeach (figure)
