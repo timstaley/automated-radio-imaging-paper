@@ -1,10 +1,10 @@
-AMIsurvey, chimenea and other tools:
+Chimenea and other tools:
 ====================================
-Automated imaging for transient surveys with existing radio-observatories
+Automated imaging of multi-epoch radio-synthesis data with CASA
 -------------------------------------------------------------------------
 
 
-A draft paper describing the [drive-ami](https://github.com/timstaley/drive-ami),
+A paper describing the [drive-ami](https://github.com/timstaley/drive-ami),
 [drive-casa](https://github.com/timstaley/drive-casa), 
 [chimenea](https://github.com/timstaley/chimenea) and 
 [amisurvey](https://github.com/timstaley/amisurvey) packages, 
